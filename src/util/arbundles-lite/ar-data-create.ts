@@ -17,7 +17,7 @@ import type { Signer } from './signing/index'
 export function createData(
   data: string | Uint8Array,
   signer: Signer,
-  opts?: DataItemCreateOptions
+  opts?: DataItemCreateOptions,
 ): DataItem {
   // TODO: Add asserts
   // Parse all values to a buffer and
@@ -54,7 +54,7 @@ export function createData(
 
   if (_owner.byteLength !== signer.ownerLength)
     throw new Error(
-      `Owner must be ${signer.ownerLength} bytes, but was incorrectly ${_owner.byteLength}`
+      `Owner must be ${signer.ownerLength} bytes, but was incorrectly ${_owner.byteLength}`,
     )
   bytes.set(_owner, 2 + signer.signatureLength)
 
@@ -65,7 +65,7 @@ export function createData(
   if (_target) {
     if (_target.byteLength !== 32)
       throw new Error(
-        `Target must be 32 bytes but was incorrectly ${_target.byteLength}`
+        `Target must be 32 bytes but was incorrectly ${_target.byteLength}`,
       )
     bytes.set(_target, position + 1)
   }

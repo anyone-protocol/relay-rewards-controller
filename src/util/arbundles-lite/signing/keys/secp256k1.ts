@@ -13,7 +13,7 @@ export default class Secp256k1 implements Signer {
 
   constructor(
     protected _key: string,
-    pk: Buffer
+    pk: Buffer,
   ) {
     this.pk = pk.toString('hex')
   }
@@ -29,7 +29,7 @@ export default class Secp256k1 implements Signer {
   static async verify(
     pk: string | Buffer,
     message: Uint8Array,
-    signature: Uint8Array
+    signature: Uint8Array,
   ): Promise<boolean> {
     let p = pk
     if (typeof pk === 'string') p = base64url.toBuffer(pk)
@@ -38,7 +38,7 @@ export default class Secp256k1 implements Signer {
       verified = secp256k1.ecdsaVerify(
         signature,
         keccak256(Buffer.from(message)),
-        p as Buffer
+        p as Buffer,
       )
       /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     } catch (e) {}
@@ -48,7 +48,7 @@ export default class Secp256k1 implements Signer {
   async sign(message: Uint8Array): Promise<Uint8Array> {
     return secp256k1.ecdsaSign(
       keccak256(Buffer.from(message)),
-      Buffer.from(this.key)
+      Buffer.from(this.key),
     ).signature
   }
 }

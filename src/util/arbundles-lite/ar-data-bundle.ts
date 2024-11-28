@@ -31,7 +31,7 @@ export function unbundleData(txData: Buffer): Bundle {
  */
 export async function bundleAndSignData(
   dataItems: DataItem[],
-  signer: Signer
+  signer: Signer,
 ): Promise<Bundle> {
   const headers = new Uint8Array(64 * dataItems.length)
 
@@ -49,7 +49,7 @@ export async function bundleAndSignData(
       headers.set(header, 64 * index)
       // Convert to array for flattening
       return d.getRaw()
-    })
+    }),
   ).then((a) => {
     return Buffer.concat(a)
   })
@@ -57,7 +57,7 @@ export async function bundleAndSignData(
   const buffer = Buffer.concat([
     Buffer.from(longTo32ByteArray(dataItems.length)),
     Buffer.from(headers),
-    binaries
+    binaries,
   ])
 
   return new Bundle(buffer)
@@ -72,7 +72,7 @@ export async function bundleAndSignData(
  */
 export async function getSignatureAndId(
   item: DataItem,
-  signer: Signer
+  signer: Signer,
 ): Promise<{ signature: Buffer; id: Buffer }> {
   const signatureData = await getSignatureData(item)
 

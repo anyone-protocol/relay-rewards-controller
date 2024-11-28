@@ -24,24 +24,24 @@ export async function deepHash(data: DeepHashChunk): Promise<Uint8Array> {
 
     const tag = concatBuffers([
       stringToBuffer('blob'),
-      stringToBuffer(length.toString())
+      stringToBuffer(length.toString()),
     ])
 
     const taggedHash = concatBuffers([
       await getCryptoDriver().hash(tag, 'SHA-384'),
-      context.digest()
+      context.digest(),
     ])
 
     return await getCryptoDriver().hash(taggedHash, 'SHA-384')
   } else if (Array.isArray(data)) {
     const tag = concatBuffers([
       stringToBuffer('list'),
-      stringToBuffer(data.length.toString())
+      stringToBuffer(data.length.toString()),
     ])
 
     return await deepHashChunks(
       data,
-      await getCryptoDriver().hash(tag, 'SHA-384')
+      await getCryptoDriver().hash(tag, 'SHA-384'),
     )
   }
 
@@ -49,12 +49,12 @@ export async function deepHash(data: DeepHashChunk): Promise<Uint8Array> {
 
   const tag = concatBuffers([
     stringToBuffer('blob'),
-    stringToBuffer(_data.byteLength.toString())
+    stringToBuffer(_data.byteLength.toString()),
   ])
 
   const taggedHash = concatBuffers([
     await getCryptoDriver().hash(tag, 'SHA-384'),
-    await getCryptoDriver().hash(_data, 'SHA-384')
+    await getCryptoDriver().hash(_data, 'SHA-384'),
   ])
 
   return await getCryptoDriver().hash(taggedHash, 'SHA-384')
@@ -62,7 +62,7 @@ export async function deepHash(data: DeepHashChunk): Promise<Uint8Array> {
 
 export async function deepHashChunks(
   chunks: DeepHashChunks,
-  acc: Uint8Array
+  acc: Uint8Array,
 ): Promise<Uint8Array> {
   if (chunks.length < 1) {
     return acc
@@ -74,7 +74,7 @@ export async function deepHashChunks(
 }
 
 export async function hashStream(
-  stream: AsyncIterable<Buffer>
+  stream: AsyncIterable<Buffer>,
 ): Promise<Buffer> {
   const context = createHash('sha384')
 

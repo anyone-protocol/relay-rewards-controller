@@ -9,33 +9,33 @@ import { BullModule } from '@nestjs/bullmq'
 import { ClusterModule } from './cluster/cluster.module'
 
 @Module({
-    imports: [
-        TasksModule,
-        ConfigModule.forRoot({ isGlobal: true }),
-        MongooseModule.forRootAsync({
-            inject: [ConfigService<{ MONGO_URI: string }>],
-            useFactory: (config: ConfigService) => ({
-                uri: config.get<string>('MONGO_URI', { infer: true }),
-            }),
-        }),
-        BullModule.forRootAsync({
-            inject: [ConfigService],
-            useFactory: (
-                config: ConfigService<{
-                    REDIS_HOSTNAME: string
-                    REDIS_PORT: number
-                }>,
-            ) => ({
-                connection: {
-                    host: config.get<string>('REDIS_HOSTNAME', { infer: true }),
-                    port: config.get<number>('REDIS_PORT', { infer: true }),
-                },
-            }),
-        }),
-        DistributionModule,
-        ClusterModule,
-    ],
-    controllers: [AppController],
-    providers: [AppService],
+  imports: [
+    TasksModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    MongooseModule.forRootAsync({
+      inject: [ConfigService<{ MONGO_URI: string }>],
+      useFactory: (config: ConfigService) => ({
+        uri: config.get<string>('MONGO_URI', { infer: true }),
+      }),
+    }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (
+        config: ConfigService<{
+          REDIS_HOSTNAME: string
+          REDIS_PORT: number
+        }>,
+      ) => ({
+        connection: {
+          host: config.get<string>('REDIS_HOSTNAME', { infer: true }),
+          port: config.get<number>('REDIS_PORT', { infer: true }),
+        },
+      }),
+    }),
+    DistributionModule,
+    ClusterModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

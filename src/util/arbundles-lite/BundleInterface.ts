@@ -14,6 +14,6 @@ export interface BundleInterface {
   toTransaction(
     attributes: Partial<CreateTransactionInterface>,
     arweave: Arweave,
-    jwk: JWKInterface
+    jwk: JWKInterface,
   ): Promise<Transaction>
 }

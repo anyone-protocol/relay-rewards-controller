@@ -5,39 +5,37 @@ import { TasksService } from '../tasks.service'
 
 @Processor('tasks-queue')
 export class TasksQueue extends WorkerHost {
-    private readonly logger = new Logger(TasksQueue.name)
+  private readonly logger = new Logger(TasksQueue.name)
 
-    public static readonly JOB_DISTRIBUTE = 'distribute'
+  public static readonly JOB_DISTRIBUTE = 'distribute'
 
-    constructor(
-        private readonly tasks: TasksService,
-    ) {
-        super()
-    }
+  constructor(private readonly tasks: TasksService) {
+    super()
+  }
 
-    async process(job: Job<any, any, string>): Promise<any> {
-        this.logger.debug(`Dequeueing ${job.name} [${job.id}]`)
+  async process(job: Job<any, any, string>): Promise<any> {
+    this.logger.debug(`Dequeueing ${job.name} [${job.id}]`)
 
-        switch (job.name) {
-            case TasksQueue.JOB_DISTRIBUTE:
-                try {
-                    return this.tasks.queueDistribution()
-                } catch (error) {
-                    this.logger.error(
-                        'Exception while starting distribution',
-                        error.stack,
-                    )
-                }
-
-                break
-
-            default:
-                this.logger.warn(`Found unknown job ${job.name} [${job.id}]`)
+    switch (job.name) {
+      case TasksQueue.JOB_DISTRIBUTE:
+        try {
+          return this.tasks.queueDistribution()
+        } catch (error) {
+          this.logger.error(
+            'Exception while starting distribution',
+            error.stack,
+          )
         }
-    }
 
-    @OnWorkerEvent('completed')
-    onCompleted(job: Job<any, any, string>) {
-        this.logger.debug(`Finished ${job.name} [${job.id}]`)
+        break
+
+      default:
+        this.logger.warn(`Found unknown job ${job.name} [${job.id}]`)
     }
+  }
+
+  @OnWorkerEvent('completed')
+  onCompleted(job: Job<any, any, string>) {
+    this.logger.debug(`Finished ${job.name} [${job.id}]`)
+  }
 }

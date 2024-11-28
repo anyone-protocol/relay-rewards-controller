@@ -69,11 +69,11 @@ export class CryptoDriver extends driver {
     return createPublicKey({
       key: this.jwkToPem(jwk),
       type: 'pkcs1',
-      format: 'pem'
+      format: 'pem',
     })
       .export({
         format: 'pem',
-        type: 'pkcs1'
+        type: 'pkcs1',
       })
       .toString()
   }

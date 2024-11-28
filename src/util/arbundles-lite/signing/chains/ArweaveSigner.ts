@@ -24,7 +24,7 @@ export default class ArweaveSigner extends Rsa4096Pss {
   static async verify(
     pk: string,
     message: Uint8Array,
-    signature: Uint8Array
+    signature: Uint8Array,
   ): Promise<boolean> {
     return await getCryptoDriver().verify(pk, message, signature)
   }

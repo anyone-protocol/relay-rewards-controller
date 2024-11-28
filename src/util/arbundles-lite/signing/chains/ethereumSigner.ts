@@ -27,14 +27,14 @@ export default class EthereumSigner extends Secp256k1 {
   static async verify(
     pk: string | Buffer,
     message: Uint8Array,
-    signature: Uint8Array
+    signature: Uint8Array,
   ): Promise<boolean> {
     // const address = ethers.utils.computeAddress(pk);
     // return ethers.utils.verifyMessage(message, signature) === address;
     return secp256k1.ecdsaVerify(
       signature.length === 65 ? signature.slice(0, -1) : signature,
       toBeArray(hashMessage(message)),
-      typeof pk === 'string' ? base64url.toBuffer(pk) : pk
+      typeof pk === 'string' ? base64url.toBuffer(pk) : pk,
     )
   }
 }

@@ -3,7 +3,7 @@ import {
   message as aoMessage,
   result as aoResult,
   dryrun as aoDryRun,
-  createDataItemSigner
+  createDataItemSigner,
 } from '@permaweb/aoconnect'
 
 export type SendAosBaseOptions = {
@@ -20,7 +20,7 @@ export type AosSigningFunction = ({
   data,
   tags,
   target,
-  anchor
+  anchor,
 }: {
   data: string | Uint8Array
   tags: any[]
@@ -33,7 +33,7 @@ export type AosSigningFunction = ({
 
 export async function sendAosDryRun(
   { processId, data, tags }: SendAosDryRunOptions,
-  retries = 3
+  retries = 3,
 ) {
   const logger = new Logger('util/sendAosDryRun')
   let attempts = 0
@@ -47,8 +47,8 @@ export async function sendAosDryRun(
         result: await aoDryRun({
           process: processId,
           tags,
-          data
-        })
+          data,
+        }),
       }
     } catch (error) {
       logger.error(`Error sending AO DryRun to process ${processId}`, error)
@@ -59,13 +59,13 @@ export async function sendAosDryRun(
           JSON.stringify(
             { attempts, retries, error: error.message },
             undefined,
-            2
-          )
+            2,
+          ),
         )
 
         // NB: Sleep between each attempt with exponential backoff
         await new Promise((resolve) =>
-          setTimeout(resolve, 2 ** attempts * 2000)
+          setTimeout(resolve, 2 ** attempts * 2000),
         )
 
         attempts++
@@ -81,7 +81,7 @@ export async function sendAosDryRun(
 
 export async function sendAosMessage(
   { processId, data, tags, signer }: SendAosMessageOptions,
-  retries = 3
+  retries = 3,
 ) {
   const logger = new Logger('util/sendAosMessage')
   let attempts = 0
@@ -95,18 +95,18 @@ export async function sendAosMessage(
         process: processId,
         tags,
         data,
-        signer
+        signer,
       })
 
       logger.debug(
-        `Fetching AO Message result ${messageId} from process ${processId}`
+        `Fetching AO Message result ${messageId} from process ${processId}`,
       )
       const result = await aoResult({
         message: messageId,
-        process: processId
+        process: processId,
       })
       logger.debug(
-        `Got AO Message result ${messageId} from process ${processId}`
+        `Got AO Message result ${messageId} from process ${processId}`,
       )
 
       return { messageId, result }
@@ -119,13 +119,13 @@ export async function sendAosMessage(
           JSON.stringify(
             { attempts, retries, error: error.message },
             undefined,
-            2
-          )
+            2,
+          ),
         )
 
         // NB: Sleep between each attempt with exponential backoff
         await new Promise((resolve) =>
-          setTimeout(resolve, 2 ** attempts * 2000)
+          setTimeout(resolve, 2 ** attempts * 2000),
         )
 
         attempts++

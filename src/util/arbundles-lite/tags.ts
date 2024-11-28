@@ -28,7 +28,7 @@ export class AVSCTap {
         const tag = tags[i]
         if (typeof tag?.name !== 'string' || typeof tag?.value !== 'string')
           throw new Error(
-            `Invalid tag format for ${tag}, expected {name:string, value: string}`
+            `Invalid tag format for ${tag}, expected {name:string, value: string}`,
           )
         this.writeString(tag.name)
         this.writeString(tag.value)

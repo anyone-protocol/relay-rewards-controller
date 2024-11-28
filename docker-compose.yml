@@ -1,21 +1,21 @@
-version: "3.7"
+version: '3.7'
 services:
   mongo:
     container_name: valid-ator-mongo
     image: mongo:5.0
     expose:
-      - "27017"
+      - '27017'
     ports:
       - 27017:27017
   redis:
     container_name: valid-ator-redis
     image: redis:7
     expose:
-      - "6379"
+      - '6379'
     ports:
       - 6379:6379
   validator:
-    build: 
+    build:
       context: .
       dockerfile: ./Dockerfile
     env_file:
