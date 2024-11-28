@@ -9,5 +9,4 @@ export class TaskServiceData {
   isDistributing: boolean
 }
 
-export const TaskServiceDataSchema =
-  SchemaFactory.createForClass(TaskServiceData)
+export const TaskServiceDataSchema = SchemaFactory.createForClass(TaskServiceData)

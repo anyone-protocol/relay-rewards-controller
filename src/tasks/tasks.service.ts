@@ -68,7 +68,7 @@ export class TasksService implements OnApplicationBootstrap {
     @InjectQueue('distribution-queue')
     public distributionQueue: Queue,
     @InjectFlowProducer('distribution-flow')
-    public distributionFlow: FlowProducer,
+    public distributionFlow: FlowProducer
   ) {
     this.doClean = this.config.get<string>('DO_CLEAN', { infer: true })
     const minRound: number = this.config.get<number>('MIN_ROUND_LENGTH', {
@@ -81,11 +81,14 @@ export class TasksService implements OnApplicationBootstrap {
     if (this.cluster.isTheOne()) {
       if (this.doClean == 'true') {
         this.logger.log('Cleaning up jobs...')
-        await this.tasksQueue.obliterate({ force: true })
-        await this.distributionQueue.obliterate({ force: true })
+        try {
+          await this.tasksQueue.obliterate({ force: true })
+          await this.distributionQueue.obliterate({ force: true })
+        } catch (error) {
+          this.logger.error('Failed cleaning up queues', error.message, error.stack)
+        }
       }
-      this.queueDistribution()
-      this.logger.log(`Bootstrapped Tasks Service`)
+      return this.queueDistribution()
     } else {
       this.logger.debug('Not the one, skipping bootstrap of tasks service')
     }
@@ -94,22 +97,22 @@ export class TasksService implements OnApplicationBootstrap {
   public async queueDistribution(): Promise<void> {
     const now = Date.now()
     if (now - this.lastRunAt >= this.minRoundLength) {
-      this.distributionQueue.add(
-        'start-distribution',
-        now,
-        TasksService.jobOpts,
-      )
+      return this.distributionQueue.add('start-distribution', now, TasksService.jobOpts)
+        .then((job) => {
+          this.lastRunAt = now
+        }, (error) => this.logger.error('Failed adding distribution job to queue', error.message, error.stack))
     } else {
       const timeOffset = this.minRoundLength - (now - this.lastRunAt)
-      await this.tasksQueue.add(
+
+      return this.tasksQueue.add(
         'distribute',
         {},
         {
           delay: timeOffset,
           removeOnComplete: TasksService.removeOnComplete,
           removeOnFail: TasksService.removeOnFail,
-        },
-      )
+        }
+      ).then(() => {}, (error) => this.logger.error('Failed adding timed distribution job to queue', error.message, error.stack))
     }
   }
 }

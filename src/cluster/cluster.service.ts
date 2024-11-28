@@ -1,25 +1,11 @@
-import {
-  BeforeApplicationShutdown,
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-} from '@nestjs/common'
+import { BeforeApplicationShutdown, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import Consul from 'consul'
-import {
-  Append,
-  AppendResult,
-  Config,
-  State,
-  Vote,
-  VoteResult,
-} from './interfaces/raft-types'
+import { Append, AppendResult, Config, State, Vote, VoteResult } from './interfaces/raft-types'
 import { AppThreadsService } from './app-threads.service'
 
 @Injectable()
-export class ClusterService
-  implements OnApplicationBootstrap, BeforeApplicationShutdown
-{
+export class ClusterService implements OnApplicationBootstrap, BeforeApplicationShutdown {
   private readonly logger = new Logger(ClusterService.name)
 
   // true - should receive and act on external events in sync with orchestrating the cluster (provide the source of truth for the raft's log)
@@ -36,9 +22,7 @@ export class ClusterService
 
   public isTheOne(): boolean {
     const isLL = this.isLocalLeader()
-    this.logger.debug(
-      `is the one? isLeader: ${this.isLeader} isLocalLeader: ${isLL} - ${process.pid}`,
-    )
+    this.logger.debug(`is the one? isLeader: ${this.isLeader} isLocalLeader: ${isLL} - ${process.pid}`)
     return this.isLeader != undefined && this.isLeader == true && isLL
   }
 
@@ -59,7 +43,7 @@ export class ClusterService
       CONSUL_TOKEN: string
       BOOTSTRAP_EXPECT: string
       IS_LIVE: string
-    }>,
+    }>
   ) {
     this.isLive = this.config.get<string>('IS_LIVE', { infer: true })
 
@@ -80,15 +64,11 @@ export class ClusterService
 
         // initiate node discovery
       } else {
-        this.logger.warn(
-          'Host/port of Consul not set, bootstrapping in single node mode...',
-        )
+        this.logger.warn('Host/port of Consul not set, bootstrapping in single node mode...')
         this.isLeader = true
       }
     } else {
-      this.logger.warn(
-        'Not live, skipping consul based cluster data. Bootstrapping in single node mode...',
-      )
+      this.logger.warn('Not live, skipping consul based cluster data. Bootstrapping in single node mode...')
       this.isLeader = true
     }
   }
@@ -123,10 +103,7 @@ export class ClusterService
     // If the candidate's log is not up-to-date, return a response with voteGranted set to false
     const lastLogIndex = configuration.log.length - 1
     const lastLogTerm = configuration.log[lastLogIndex].term
-    if (
-      lastLogTerm > rpc.lastLogTerm ||
-      (lastLogTerm === rpc.lastLogTerm && lastLogIndex > rpc.lastLogIndex)
-    ) {
+    if (lastLogTerm > rpc.lastLogTerm || (lastLogTerm === rpc.lastLogTerm && lastLogIndex > rpc.lastLogIndex)) {
       return {
         term: configuration.currentTerm,
         voteGranted: false,
@@ -169,14 +146,8 @@ export class ClusterService
     }
 
     // Otherwise, append the new entries to the log and return a response with success set to true
-    configuration.log = [
-      ...configuration.log.slice(0, prevLogIndex + 1),
-      ...rpc.entries,
-    ]
-    configuration.commitIndex = Math.min(
-      rpc.leaderCommit,
-      configuration.log.length - 1,
-    )
+    configuration.log = [...configuration.log.slice(0, prevLogIndex + 1), ...rpc.entries]
+    configuration.commitIndex = Math.min(rpc.leaderCommit, configuration.log.length - 1)
     return {
       term: configuration.currentTerm,
       success: true,
@@ -218,10 +189,7 @@ export class ClusterService
     }
 
     // If the node is already a leader or a candidate, return a response with voteGranted set to false
-    if (
-      configuration.state === State.LEADER ||
-      configuration.state === State.CANDIDATE
-    ) {
+    if (configuration.state === State.LEADER || configuration.state === State.CANDIDATE) {
       return {
         term: configuration.currentTerm,
         voteGranted: false,
@@ -241,10 +209,7 @@ export class ClusterService
   }
 
   // TODO: connect with appendEntriesRPC
-  public handleAppendEntriesRPC(
-    configuration: Config,
-    rpc: Append,
-  ): AppendResult {
+  public handleAppendEntriesRPC(configuration: Config, rpc: Append): AppendResult {
     // If the RPC term is less than the current term, return a response with success set to false
     if (rpc.term < configuration.currentTerm) {
       return {
@@ -273,22 +238,15 @@ export class ClusterService
     return this.appendEntries(configuration, rpc)
   }
 
-  public advanceCommitIndex(
-    configuration: Config,
-    responses: AppendResult[],
-  ): void {
+  public advanceCommitIndex(configuration: Config, responses: AppendResult[]): void {
     // Sort the responses by term and index
-    responses.sort((a, b) =>
-      a.term !== b.term ? a.term - b.term : a.index - b.index,
-    )
+    responses.sort((a, b) => (a.term !== b.term ? a.term - b.term : a.index - b.index))
 
     // Find the highest index that is included in a majority of responses
     const majority = Math.floor(responses.length / 2) + 1
     let commitIndex = 0
     for (let i = 0; i < responses.length; i++) {
-      if (
-        responses.slice(0, i + 1).filter((r) => r.success).length >= majority
-      ) {
+      if (responses.slice(0, i + 1).filter(r => r.success).length >= majority) {
         commitIndex = responses[i].index
       }
     }

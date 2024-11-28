@@ -50,9 +50,7 @@ function isHexString(value: any, length?: number) {
 
 function padToEven(value: any) {
   if (typeof value !== 'string') {
-    throw new Error(
-      `while padding to even, value must be string, is currently ${typeof value}, while padToEven.`,
-    )
+    throw new Error(`while padding to even, value must be string, is currently ${typeof value}, while padToEven.`)
   }
 
   if (value.length % 2) {
@@ -73,9 +71,7 @@ function stripHexPrefix(value: any) {
 function isHexPrefixed(value: any) {
   if (typeof value !== 'string') {
     throw new Error(
-      "value must be type 'string', is currently type " +
-        typeof value +
-        ', while checking isHexPrefixed.',
+      "value must be type 'string', is currently type " + typeof value + ', while checking isHexPrefixed.'
     )
   }
 

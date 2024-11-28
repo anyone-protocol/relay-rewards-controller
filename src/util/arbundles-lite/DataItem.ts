@@ -65,17 +65,12 @@ export class DataItem implements BundleItem {
 
   set rawOwner(pubkey: Buffer) {
     if (pubkey.byteLength != this.ownerLength)
-      throw new Error(
-        `Expected raw owner (pubkey) to be ${this.ownerLength} bytes, got ${pubkey.byteLength} bytes.`,
-      )
+      throw new Error(`Expected raw owner (pubkey) to be ${this.ownerLength} bytes, got ${pubkey.byteLength} bytes.`)
     this.binary.set(pubkey, 2 + this.signatureLength)
   }
 
   get rawOwner(): Buffer {
-    return this.binary.subarray(
-      2 + this.signatureLength,
-      2 + this.signatureLength + this.ownerLength,
-    )
+    return this.binary.subarray(2 + this.signatureLength, 2 + this.signatureLength + this.ownerLength)
   }
 
   get signatureLength(): number {
@@ -93,9 +88,7 @@ export class DataItem implements BundleItem {
   get rawTarget(): Buffer {
     const targetStart = this.getTargetStart()
     const isPresent = this.binary[targetStart] == 1
-    return isPresent
-      ? this.binary.subarray(targetStart + 1, targetStart + 33)
-      : Buffer.alloc(0)
+    return isPresent ? this.binary.subarray(targetStart + 1, targetStart + 33) : Buffer.alloc(0)
   }
 
   get target(): Base64URLString {
@@ -106,9 +99,7 @@ export class DataItem implements BundleItem {
     const anchorStart = this.getAnchorStart()
     const isPresent = this.binary[anchorStart] == 1
 
-    return isPresent
-      ? this.binary.subarray(anchorStart + 1, anchorStart + 33)
-      : Buffer.alloc(0)
+    return isPresent ? this.binary.subarray(anchorStart + 1, anchorStart + 33) : Buffer.alloc(0)
   }
 
   get anchor(): Base64URLString {
@@ -117,35 +108,25 @@ export class DataItem implements BundleItem {
 
   get rawTags(): Buffer {
     const tagsStart = this.getTagsStart()
-    const tagsSize = byteArrayToLong(
-      this.binary.subarray(tagsStart + 8, tagsStart + 16),
-    )
+    const tagsSize = byteArrayToLong(this.binary.subarray(tagsStart + 8, tagsStart + 16))
     return this.binary.subarray(tagsStart + 16, tagsStart + 16 + tagsSize)
   }
 
   get tags(): { name: string; value: string }[] {
     const tagsStart = this.getTagsStart()
-    const tagsCount = byteArrayToLong(
-      this.binary.subarray(tagsStart, tagsStart + 8),
-    )
+    const tagsCount = byteArrayToLong(this.binary.subarray(tagsStart, tagsStart + 8))
     if (tagsCount == 0) {
       return []
     }
 
-    const tagsSize = byteArrayToLong(
-      this.binary.subarray(tagsStart + 8, tagsStart + 16),
-    )
+    const tagsSize = byteArrayToLong(this.binary.subarray(tagsStart + 8, tagsStart + 16))
 
-    return deserializeTags(
-      Buffer.from(
-        this.binary.subarray(tagsStart + 16, tagsStart + 16 + tagsSize),
-      ),
-    )
+    return deserializeTags(Buffer.from(this.binary.subarray(tagsStart + 16, tagsStart + 16 + tagsSize)))
   }
 
   get tagsB64Url(): { name: Base64URLString; value: Base64URLString }[] {
     const _tags = this.tags
-    return _tags.map((t) => ({
+    return _tags.map(t => ({
       name: base64url.encode(t.name),
       value: base64url.encode(t.value),
     }))
@@ -154,10 +135,7 @@ export class DataItem implements BundleItem {
   getStartOfData(): number {
     const tagsStart = this.getTagsStart()
 
-    const numberOfTagBytesArray = this.binary.subarray(
-      tagsStart + 8,
-      tagsStart + 16,
-    )
+    const numberOfTagBytesArray = this.binary.subarray(tagsStart + 8, tagsStart + 16)
     const numberOfTagBytes = byteArrayToLong(numberOfTagBytesArray)
     return tagsStart + 16 + numberOfTagBytes
   }
@@ -165,10 +143,7 @@ export class DataItem implements BundleItem {
   get rawData(): Buffer {
     const tagsStart = this.getTagsStart()
 
-    const numberOfTagBytesArray = this.binary.subarray(
-      tagsStart + 8,
-      tagsStart + 16,
-    )
+    const numberOfTagBytesArray = this.binary.subarray(tagsStart + 8, tagsStart + 16)
     const numberOfTagBytes = byteArrayToLong(numberOfTagBytesArray)
     const dataStart = tagsStart + 16 + numberOfTagBytes
 
@@ -216,7 +191,7 @@ export class DataItem implements BundleItem {
       signature: this.signature,
       owner: this.owner,
       target: this.target,
-      tags: this.tags.map((t) => ({
+      tags: this.tags.map(t => ({
         name: base64url.encode(t.name),
         value: base64url.encode(t.value),
       })),
@@ -238,9 +213,7 @@ export class DataItem implements BundleItem {
     const sigType = item.signatureType
     const tagsStart = item.getTagsStart()
 
-    const numberOfTags = byteArrayToLong(
-      buffer.subarray(tagsStart, tagsStart + 8),
-    )
+    const numberOfTags = byteArrayToLong(buffer.subarray(tagsStart, tagsStart + 8))
     const numberOfTagBytesArray = buffer.subarray(tagsStart + 8, tagsStart + 16)
     const numberOfTagBytes = byteArrayToLong(numberOfTagBytesArray)
 
@@ -249,9 +222,7 @@ export class DataItem implements BundleItem {
     if (numberOfTags > 0) {
       try {
         const tags: { name: string; value: string }[] = deserializeTags(
-          Buffer.from(
-            buffer.subarray(tagsStart + 16, tagsStart + 16 + numberOfTagBytes),
-          ),
+          Buffer.from(buffer.subarray(tagsStart + 16, tagsStart + 16 + numberOfTagBytes))
         )
 
         if (tags.length !== numberOfTags) {

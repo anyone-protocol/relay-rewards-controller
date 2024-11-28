@@ -2,10 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { TasksService } from './tasks.service'
 import { BullModule } from '@nestjs/bullmq'
 import { ConfigModule } from '@nestjs/config'
-import {
-  TaskServiceData,
-  TaskServiceDataSchema,
-} from './schemas/task-service-data'
+import { TaskServiceData, TaskServiceDataSchema } from './schemas/task-service-data'
 import { MongooseModule } from '@nestjs/mongoose'
 import { ClusterModule } from '../cluster/cluster.module'
 
@@ -17,9 +14,7 @@ describe('TasksService', () => {
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         ClusterModule,
-        MongooseModule.forRoot(
-          'mongodb://localhost/validATOR-tasks-service-tests',
-        ),
+        MongooseModule.forRoot('mongodb://localhost/validATOR-tasks-service-tests'),
         BullModule.registerQueue({
           name: 'tasks-queue',
           connection: { host: 'localhost', port: 6379 },

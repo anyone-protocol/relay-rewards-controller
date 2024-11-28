@@ -14,9 +14,7 @@ export class AppThreadsService {
     if (cluster.isPrimary) {
       const countCPUs = parseInt(process.env.CPU_COUNT || '1')
       const numThreads = Math.min(countCPUs, maxCPUs)
-      console.log(
-        `Primary process pid: ${process.pid}, forking ${numThreads} threads`,
-      )
+      console.log(`Primary process pid: ${process.pid}, forking ${numThreads} threads`)
 
       if (numThreads > 1) {
         for (let i = 0; i < numThreads; i++) {

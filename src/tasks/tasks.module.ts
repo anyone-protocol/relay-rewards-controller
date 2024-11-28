@@ -4,10 +4,7 @@ import { TasksQueue } from './processors/tasks-queue'
 import { TasksService } from './tasks.service'
 import { DistributionQueue } from './processors/distribution-queue'
 import { DistributionModule } from 'src/distribution/distribution.module'
-import {
-  TaskServiceData,
-  TaskServiceDataSchema,
-} from './schemas/task-service-data'
+import { TaskServiceData, TaskServiceDataSchema } from './schemas/task-service-data'
 import { MongooseModule } from '@nestjs/mongoose'
 import { ClusterModule } from 'src/cluster/cluster.module'
 

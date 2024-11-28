@@ -31,12 +31,7 @@ class ResilientWebsocketProvider {
   private maxRetriesCallback: (...args: any[]) => void
   private logger: Logger
 
-  constructor(
-    url: string,
-    network: Networkish,
-    name: string,
-    maxRetriesCallback: (...args: any[]) => void,
-  ) {
+  constructor(url: string, network: Networkish, name: string, maxRetriesCallback: (...args: any[]) => void) {
     this.url = url
     this.network = network
     this.terminate = false
@@ -52,12 +47,12 @@ class ResilientWebsocketProvider {
   }
 
   async connect(): Promise<WebSocketProvider | null> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const startConnection = () => {
         if (this.reconnectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
           this.logger.error(
             `Max reconnection attempts (${MAX_RECONNECTION_ATTEMPTS}) reached` +
-              ` for ${this.name}. Stopping reconnection.`,
+              ` for ${this.name}. Stopping reconnection.`
           )
           this.terminate = true
           this.maxRetriesCallback(this.name)
@@ -90,10 +85,7 @@ class ResilientWebsocketProvider {
             await this.resubscribe()
             resolve(this.provider)
           } catch (error) {
-            this.logger.error(
-              `Error initializing WebSocketProvider for ${this.name}:`,
-              error,
-            )
+            this.logger.error(`Error initializing WebSocketProvider for ${this.name}:`, error)
             this.cleanupConnection()
             this.reconnectionAttempts++
             setTimeout(startConnection, RECONNECTION_DELAY)
@@ -101,21 +93,16 @@ class ResilientWebsocketProvider {
         })
 
         this.ws.on('close', () => {
-          this.logger.error(
-            `The websocket connection was closed for ${this.name}`,
-          )
+          this.logger.error(`The websocket connection was closed for ${this.name}`)
           this.cleanupConnection()
           if (!this.terminate) {
             this.reconnectionAttempts++
-            this.logger.debug(
-              `Attempting to reconnect... ` +
-                `(Attempt ${this.reconnectionAttempts})`,
-            )
+            this.logger.debug(`Attempting to reconnect... ` + `(Attempt ${this.reconnectionAttempts})`)
             setTimeout(startConnection, RECONNECTION_DELAY)
           }
         })
 
-        this.ws.on('error', (error) => {
+        this.ws.on('error', error => {
           this.logger.error(`WebSocket error for ${this.name}:`, error)
         })
 
@@ -157,37 +144,27 @@ class ResilientWebsocketProvider {
     for (const subscription of this.subscriptions) {
       try {
         await this.provider?.on(subscription.type, subscription.listener)
-        this.logger.debug(
-          `Resubscribed to ${JSON.stringify(subscription.type)}`,
-        )
+        this.logger.debug(`Resubscribed to ${JSON.stringify(subscription.type)}`)
       } catch (error) {
-        this.logger.error(
-          error,
-          `Failed to resubscribe to ${subscription.type}:`,
-        )
+        this.logger.error(error, `Failed to resubscribe to ${subscription.type}:`)
       }
     }
   }
 
   private sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms))
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 }
 
 async function createResilientProviders(
   urls: { url: string; name: string }[],
   network: Networkish,
-  maxRetriesCallback: (...args: any[]) => void,
+  maxRetriesCallback: (...args: any[]) => void
 ): Promise<WebSocketProvider[]> {
   const providers = await Promise.all(
     urls.map(async ({ url, name }) => {
       try {
-        const resilientProvider = new ResilientWebsocketProvider(
-          url,
-          network,
-          name,
-          maxRetriesCallback,
-        )
+        const resilientProvider = new ResilientWebsocketProvider(url, network, name, maxRetriesCallback)
         const provider = await resilientProvider.connect()
         if (provider) {
           // Wrap the provider's 'on' method to track subscriptions
@@ -199,19 +176,14 @@ async function createResilientProviders(
         }
         return provider
       } catch (error) {
-        this.logger.error(
-          `Failed to create ResilientWebsocketProvider for ${url}:`,
-          error,
-        )
+        this.logger.error(`Failed to create ResilientWebsocketProvider for ${url}:`, error)
         return null
       }
-    }),
+    })
   )
 
   // Filter out any null providers (failed connections)
-  return providers.filter(
-    (provider) => provider !== null,
-  ) as WebSocketProvider[]
+  return providers.filter(provider => provider !== null) as WebSocketProvider[]
 }
 
 export { createResilientProviders, ResilientWebsocketProvider }

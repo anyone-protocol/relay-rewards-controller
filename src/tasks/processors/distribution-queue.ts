@@ -17,14 +17,12 @@ export class DistributionQueue extends WorkerHost {
 
   constructor(
     private readonly distribution: DistributionService,
-    private readonly tasks: TasksService,
+    private readonly tasks: TasksService
   ) {
     super()
   }
 
-  async process(
-    job: Job<any, any, string>,
-  ): Promise<boolean | AddScoresResult | undefined> {
+  async process(job: Job<any, any, string>): Promise<boolean | AddScoresResult | undefined> {
     this.logger.debug(`Dequeueing ${job.name} [${job.id}]`)
 
     switch (job.name) {
@@ -50,51 +48,50 @@ export class DistributionQueue extends WorkerHost {
     this.logger.debug(`Finished ${job.name} [${job.id}]`)
   }
 
-  startDistributionHandler(job: Job<number, boolean, string>): boolean {
-    try {
-      const scores: ScoreData[] = this.distribution
-        .getCurrentScores(job.data)
-        .filter((score) => score.Network > 0)
+  async startDistributionHandler(job: Job<number, boolean, string>): Promise<boolean> {
+    return this.distribution.getCurrentScores(job.data).then(
+      scores => {
+        const filtered = scores.filter(score => score.Network > 0)
+        const scoreGroups = this.distribution.groupScoreJobs(filtered)
 
-      const scoreGroups = this.distribution.groupScoreJobs(scores)
-      this.tasks.distributionFlow.add(
-        TasksService.DISTRIBUTION_FLOW({
-          stamp: job.data,
-          total: scores.length,
-          scoreGroups: scoreGroups,
-        }),
-      )
+        this.tasks.distributionFlow.add(
+          TasksService.DISTRIBUTION_FLOW({
+            stamp: job.data,
+            total: scores.length,
+            scoreGroups: scoreGroups,
+          })
+        )
 
-      this.logger.log(
-        `Started distribution ${job.data} with ${scores.length} non-zero scores grouped to ${scoreGroups.length} jobs`,
-      )
-
-      return true
-    } catch (e) {
-      this.logger.error('Exception while starting distribution', e.stack)
-    }
-    return false
+        this.logger.log(
+          `Started distribution ${job.data} with ${filtered.length} non-zero scores grouped to ${scoreGroups.length} jobs`
+        )
+        return true
+      },
+      error => {
+        this.logger.error('Exception while starting distribution', error.message, error.stack)
+        return false
+      }
+    )
   }
 
   async addScoresHandler(
-    job: Job<{ stamp: number; scores: ScoreData[] }, AddScoresResult, string>,
+    job: Job<{ stamp: number; scores: ScoreData[] }, AddScoresResult, string>
   ): Promise<AddScoresResult> {
     try {
       if (job.data != undefined) {
-        this.logger.log(
-          `Adding ${job.data.scores.length} scores for ${job.data.stamp}`,
-        )
+        this.logger.log(`Adding ${job.data.scores.length} scores for ${job.data.stamp}`)
 
-        const result = await this.distribution.addScores(
-          job.data.stamp,
-          job.data.scores,
+        return this.distribution.addScores(job.data.stamp, job.data.scores).then(
+          result => ({
+            result: result,
+            stamp: job.data.stamp,
+            scored: job.data.scores.map(value => value.Fingerprint),
+          }),
+          error => {
+            this.logger.error('Exception while adding scores', error.message, error.stack)
+            return { result: false, stamp: 0, scored: [] }
+          }
         )
-
-        return {
-          result: result,
-          stamp: job.data.stamp,
-          scored: job.data.scores.map((value) => value.Fingerprint),
-        }
       } else {
         this.logger.error('Undefined job data')
       }
@@ -104,51 +101,44 @@ export class DistributionQueue extends WorkerHost {
     return { result: false, stamp: 0, scored: [] }
   }
 
-  async completeDistributionHandler(
-    job: Job<{ stamp: number; total: number }, boolean, string>,
-  ): Promise<boolean> {
-    try {
-      const data = job.data
-
-      const jobsData: AddScoresResult[] = Object.values(
-        await job.getChildrenValues(),
-      )
-      const { processed, failed } = jobsData.reduce(
-        (acc, curr) => {
-          if (curr.result) {
-            acc.processed.push(...curr.scored)
-          } else {
-            acc.failed.push(...curr.scored)
-          }
-          return acc
-        },
-        { processed: [] as string[], failed: [] as string[] },
-      )
-
-      if (processed.length < data.total) {
-        this.logger.warn(
-          `Processed less scores (${processed.length}) then the total value set (${data.total})`,
+  async completeDistributionHandler(job: Job<{ stamp: number; total: number }, boolean, string>): Promise<boolean> {
+    return job
+      .getChildrenValues()
+      .then(jobValues => {
+        const jobsData = Object.values(jobValues)
+        const { processed, failed } = jobsData.reduce(
+          (acc, curr) => {
+            if (curr.result) {
+              acc.processed.push(...curr.scored)
+            } else {
+              acc.failed.push(...curr.scored)
+            }
+            return acc
+          },
+          { processed: [] as string[], failed: [] as string[] }
         )
-      }
 
-      return this.distribution.complete(data.stamp)
-    } catch (e) {
-      this.logger.error('Exception while completing distribution', e.stack)
-    }
-    return false
+        if (processed.length < job.data.total) {
+          this.logger.warn(`Processed less scores (${processed.length}) then the total found (${job.data.total})`)
+        } else {
+          this.logger.log(`Processed ${processed.length} scores`)
+        }
+      })
+      .then(
+        () => this.distribution.complete(job.data.stamp),
+        error => {
+          this.logger.error('Exception while completing distribution', error.message, error.stack)
+          return false
+        }
+      )
   }
 
-  async persistDistributionHandler(
-    job: Job<{ stamp: number }, boolean, string>,
-  ): Promise<boolean> {
+  async persistDistributionHandler(job: Job<{ stamp: number }, boolean, string>): Promise<boolean> {
     try {
       this.logger.log(`Persisting distribution summary [${job.data.stamp}]`)
       return this.distribution.persistRound(job.data.stamp)
     } catch (err) {
-      this.logger.error(
-        `Exception persisting distribution summary [${job.data.stamp}]`,
-        err.stack,
-      )
+      this.logger.error(`Exception persisting distribution summary [${job.data.stamp}]`, err.stack)
     }
 
     return false

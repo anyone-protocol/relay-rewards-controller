@@ -24,7 +24,7 @@ import { ClusterModule } from './cluster/cluster.module'
         config: ConfigService<{
           REDIS_HOSTNAME: string
           REDIS_PORT: number
-        }>,
+        }>
       ) => ({
         connection: {
           host: config.get<string>('REDIS_HOSTNAME', { infer: true }),

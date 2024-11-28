@@ -74,12 +74,9 @@ export class Bundle implements BundleInterface {
   public async toTransaction(
     attributes: Partial<Omit<CreateTransactionInterface, 'data'>>,
     arweave: Arweave,
-    jwk: JWKInterface,
+    jwk: JWKInterface
   ): Promise<Transaction> {
-    const tx = await arweave.createTransaction(
-      { data: this.binary, ...attributes },
-      jwk,
-    )
+    const tx = await arweave.createTransaction({ data: this.binary, ...attributes }, jwk)
     tx.addTag('Bundle-Format', 'binary')
     tx.addTag('Bundle-Version', '2.0.0')
     return tx
@@ -88,9 +85,7 @@ export class Bundle implements BundleInterface {
   public async verify(): Promise<boolean> {
     for (const item of this.items) {
       const valid = await item.isValid()
-      const expected = base64url(
-        createHash('sha256').update(item.rawSignature).digest(),
-      )
+      const expected = base64url(createHash('sha256').update(item.rawSignature).digest())
       if (!(valid && item.id === expected)) {
         return false
       }
@@ -150,9 +145,7 @@ export class Bundle implements BundleInterface {
 
     const bundleStart = this.getBundleStart()
     const dataItemStart = bundleStart + offset.startOffset
-    return new DataItem(
-      this.binary.subarray(dataItemStart, dataItemStart + offset.size),
-    )
+    return new DataItem(this.binary.subarray(dataItemStart, dataItemStart + offset.size))
   }
 
   private getDataItemCount(): number {

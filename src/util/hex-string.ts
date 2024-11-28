@@ -1,7 +1,4 @@
-export type LengthOfString<
-  S extends string,
-  Acc extends 0[] = [],
-> = S extends `${string}${infer $Rest}`
+export type LengthOfString<S extends string, Acc extends 0[] = []> = S extends `${string}${infer $Rest}`
   ? LengthOfString<$Rest, [...Acc, 0]>
   : Acc['length']
 
@@ -12,15 +9,9 @@ type HexCharsUpper = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
 
 type Hex = HexNumbers | HexCharsLower | HexCharsUpper
 
-export type HexString<S> = S extends ''
-  ? unknown
-  : S extends `${Hex}${infer Rest}`
-    ? HexString<Rest>
-    : never
+export type HexString<S> = S extends '' ? unknown : S extends `${Hex}${infer Rest}` ? HexString<Rest> : never
 
-declare function onlyHexString<S extends string>(
-  hexString: S & HexString<S>,
-): any
+declare function onlyHexString<S extends string>(hexString: S & HexString<S>): any
 
 export const UPPER_HEX_CHARS = '0123456789ABCDEF'
 export const HEX_CHARS = `0123456789ABCDEFabcdef`
@@ -30,11 +21,7 @@ export function isHexStringValid(hex?: string, uppercase: boolean = false) {
     return false
   }
 
-  if (
-    !hex
-      .split('')
-      .every((c) => (uppercase ? UPPER_HEX_CHARS : HEX_CHARS).includes(c))
-  ) {
+  if (!hex.split('').every(c => (uppercase ? UPPER_HEX_CHARS : HEX_CHARS).includes(c))) {
     return false
   }
 

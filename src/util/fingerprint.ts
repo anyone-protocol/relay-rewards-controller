@@ -7,9 +7,7 @@ export type Fingerprint<S extends string = ''> = Uppercase<S> & S extends ''
     : never
 
 // onlyFingerprint('AAAAABBBBBCCCCCDDDDDEEEEEFFFFF0000011111')
-declare function onlyFingerprint<S extends string>(
-  fingerprint: S & Fingerprint<S>,
-): any
+declare function onlyFingerprint<S extends string>(fingerprint: S & Fingerprint<S>): any
 
 export function isFingerprintValid(fingerprint?: string) {
   // ContractAssert(!!fingerprint, FINGERPRINT_REQUIRED)
@@ -31,7 +29,7 @@ export function isFingerprintValid(fingerprint?: string) {
   //   fingerprint.split('').every(c => UPPER_HEX_CHARS.includes(c)),
   //   INVALID_FINGERPRINT
   // )
-  if (!fingerprint.split('').every((c) => UPPER_HEX_CHARS.includes(c))) {
+  if (!fingerprint.split('').every(c => UPPER_HEX_CHARS.includes(c))) {
     return false
   }
 

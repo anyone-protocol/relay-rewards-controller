@@ -113,7 +113,7 @@ export class DistributionService {
     async onApplicationBootstrap(): Promise<void> {
         this.signer = await createEthereumDataItemSigner(
             new EthereumSigner(this.relayRewardsControllerKey)
-            )
+        )
         const wallet = new Wallet(this.relayRewardsControllerKey)
         const address = await wallet.getAddress()
         this.logger.log(`Bootstrapped with signer address ${address}`)
@@ -150,6 +150,10 @@ export class DistributionService {
         )
 
         return result
+    }
+
+    public async getCurrentScores(stamp: number): Promise<ScoreData[]> {
+        return []
     }
 
     public async addScores(stamp: number, scores: ScoreData[]): Promise<boolean> {

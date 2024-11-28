@@ -15,7 +15,7 @@ export default class Rsa4096Pss implements Signer {
 
   constructor(
     private _key: string,
-    public pk?: string,
+    public pk?: string
   ) {
     if (!pk) {
       this.pk = getCryptoDriver().getPublicKey(JSON.parse(_key))
@@ -29,16 +29,7 @@ export default class Rsa4096Pss implements Signer {
     })
   }
 
-  static async verify(
-    pk: string | Buffer,
-    message: Uint8Array,
-    signature: Uint8Array,
-  ): Promise<boolean> {
-    return verify(
-      'rsa-pss',
-      message,
-      Buffer.isBuffer(pk) ? base64url.encode(pk) : pk,
-      signature,
-    )
+  static async verify(pk: string | Buffer, message: Uint8Array, signature: Uint8Array): Promise<boolean> {
+    return verify('rsa-pss', message, Buffer.isBuffer(pk) ? base64url.encode(pk) : pk, signature)
   }
 }

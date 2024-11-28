@@ -1,9 +1,7 @@
 export function longToNByteArray(N: number, long: number): Uint8Array {
   const byteArray = new Uint8Array(N)
-  if (long < 0)
-    throw new Error('Array is unsigned, cannot represent -ve numbers')
-  if (long > 2 ** (N * 8) - 1)
-    throw new Error(`Number ${long} is too large for an array of ${N} bytes`)
+  if (long < 0) throw new Error('Array is unsigned, cannot represent -ve numbers')
+  if (long > 2 ** (N * 8) - 1) throw new Error(`Number ${long} is too large for an array of ${N} bytes`)
   for (let index = 0; index < byteArray.length; index++) {
     const byte = long & 0xff
     byteArray[index] = byte
@@ -61,9 +59,7 @@ export interface CreateTransactionInterface {
 
 // hack as ESM won't unpack .default CJS imports, so we do so dynamically
 
-const driver: typeof nodeDriver = nodeDriver['default']
-  ? nodeDriver['default']
-  : nodeDriver
+const driver: typeof nodeDriver = nodeDriver['default'] ? nodeDriver['default'] : nodeDriver
 export class CryptoDriver extends driver {
   public getPublicKey(jwk: JWKInterface): string {
     return createPublicKey({

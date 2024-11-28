@@ -1,10 +1,5 @@
 import { isHexString } from 'ethers'
-import {
-  LengthOfString,
-  HexString,
-  UPPER_HEX_CHARS,
-  isHexStringValid,
-} from './hex-string'
+import { LengthOfString, HexString, UPPER_HEX_CHARS, isHexStringValid } from './hex-string'
 
 export type EvmAddress<S extends string = ''> = S extends ''
   ? never
@@ -14,9 +9,7 @@ export type EvmAddress<S extends string = ''> = S extends ''
       : never
     : never
 
-declare function onlyEvmAddress<S extends string>(
-  address: S & EvmAddress<S>,
-): any
+declare function onlyEvmAddress<S extends string>(address: S & EvmAddress<S>): any
 // onlyEvmAddress('0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
 
 export function isAddressValid(address?: string) {

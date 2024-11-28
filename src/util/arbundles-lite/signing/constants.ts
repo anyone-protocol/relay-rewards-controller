@@ -16,11 +16,7 @@ export type IndexToType = Record<
     new (...args): Signer
     readonly signatureLength: number
     readonly ownerLength: number
-    verify(
-      pk: string | Uint8Array,
-      message: Uint8Array,
-      signature: Uint8Array,
-    ): Promise<boolean>
+    verify(pk: string | Uint8Array, message: Uint8Array, signature: Uint8Array): Promise<boolean>
   }
 >
 
