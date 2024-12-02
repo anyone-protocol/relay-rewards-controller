@@ -4,7 +4,7 @@ import { Job } from 'bullmq'
 import { DistributionService } from 'src/distribution/distribution.service'
 import { TasksService } from '../tasks.service'
 import { ScoreData } from 'src/distribution/schemas/score-data'
-import AddScoresResult from 'src/distribution/dto/add-scores-result'
+import { AddScoresResult } from 'src/distribution/dto/add-scores'
 
 @Processor('distribution-queue')
 export class DistributionQueue extends WorkerHost {

@@ -1,6 +1,7 @@
 import Configuration from './configuration'
+import ScoringDetails from './scoring-details'
 
-export default interface RoundMetadata {
+export default interface RoundSnapshot {
   Timestamp: number // millis
   Period: number // seconds
   Summary: {
@@ -11,4 +12,7 @@ export default interface RoundMetadata {
     ExitBonus: number
   }
   Configuration: Configuration
+  Details: {
+    [key: string]: ScoringDetails
+  }
 }

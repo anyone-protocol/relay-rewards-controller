@@ -2,19 +2,10 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ScoreData } from './schemas/score-data'
 import { ConfigService } from '@nestjs/config'
 import Bundlr from '@bundlr-network/client'
-import { HttpService } from '@nestjs/axios'
-
-import {
-    AosSigningFunction,
-    sendAosDryRun,
-    sendAosMessage
-  } from '../util/send-aos-message'
-  import { createEthereumDataItemSigner } from '../util/create-ethereum-data-item-signer'
-  import { EthereumSigner } from '../util/arbundles-lite'
-import { Wallet } from 'ethers'
 import _ from 'lodash'
-import RoundMetadata from './dto/round-metadata'
-import RoundData from './dto/round-data'
+import { RelayRewardsService } from 'src/relay-rewards/relay-rewards.service'
+import { AddScoresData } from './dto/add-scores'
+import RoundSnapshot from './dto/round-snapshot'
 
 @Injectable()
 export class DistributionService {
@@ -23,40 +14,23 @@ export class DistributionService {
     private isLive?: string
 
     private static readonly scoresPerBatch = 420
-
-    private readonly relayRewardsProcessId: string
-    private readonly relayRewardsControllerKey: string
-      
-    private signer!: AosSigningFunction
     
     private bundler
 
     constructor(
         private readonly config: ConfigService<{
             IS_LIVE: string
-            RELAY_REWARDS_PROCESS_ID: string
-            RELAY_REWARDS_CONTROLLER_KEY: string
             BUNDLER_NODE: string
             BUNDLER_NETWORK: string
             BUNDLER_CONTROLLER_KEY: string
         }>,
-        private readonly httpService: HttpService,
+        private readonly relayRewardsService: RelayRewardsService,
     ) {
         this.isLive = config.get<string>('IS_LIVE', { infer: true })
 
         this.logger.log(
             `Initializing distribution service (IS_LIVE: ${this.isLive})`,
         )
-
-        const controllerKey = this.config.get<string>(
-            'RELAY_REWARDS_CONTROLLER_KEY',
-            {
-                infer: true,
-            },
-        )
-        if (controllerKey !== undefined) {
-            this.relayRewardsControllerKey = controllerKey
-        }
         
         const bundlerKey = this.config.get<string>(
             'BUNDLER_CONTROLLER_KEY',
@@ -87,36 +61,6 @@ export class DistributionService {
                 this.logger.error('Failed to initialize bundler!')
             }
         } else this.logger.error('Missing key of the bundler\'s controller.')
-
-        const relayRewardsPid = this.config.get<string>(
-            'RELAY_REWARDS_PROCESS_ID',
-            {
-                infer: true,
-            },
-        )
-        if (relayRewardsPid != undefined) {
-            this.relayRewardsProcessId = relayRewardsPid
-        } else this.logger.error('Missing relay rewards process id')
-
-        const relayRewardsKey = this.config.get<string>(
-            'RELAY_REWARDS_CONTROLLER_KEY',
-            {
-                infer: true,
-            },
-        )
-
-        if (relayRewardsKey != undefined) {
-            this.relayRewardsControllerKey = relayRewardsKey
-        } else this.logger.error('Missing relay rewards controller key')
-    }
-
-    async onApplicationBootstrap(): Promise<void> {
-        this.signer = await createEthereumDataItemSigner(
-            new EthereumSigner(this.relayRewardsControllerKey)
-        )
-        const wallet = new Wallet(this.relayRewardsControllerKey)
-        const address = await wallet.getAddress()
-        this.logger.log(`Bootstrapped with signer address ${address}`)
     }
 
     public groupScoreJobs(data: ScoreData[]): ScoreData[][] {
@@ -157,87 +101,24 @@ export class DistributionService {
     }
 
     public async addScores(stamp: number, scores: ScoreData[]): Promise<boolean> {
-        const scoresForLua: {
-            [key: string]: Omit<ScoreData, 'Fingerprint'>
-        } = {}
+        const scoresForLua: AddScoresData = {}
         scores.forEach((score) => scoresForLua[score.Fingerprint] = score)
 
-        if (this.isLive === 'true') {
-            try {
-                const { messageId, result } = await sendAosMessage({
-                    processId: this.relayRewardsProcessId,
-                    signer: this.signer as any, // NB: types, lol
-                    tags: [
-                        { name: 'Action', value: 'Add-Scores' },
-                        { name: 'Timestamp', value: stamp.toString() },
-                    ],
-                    data: JSON.stringify({
-                        Scores: scoresForLua
-                    })
-                })
-        
-                if (!result.Error) {
-                    this.logger.log(
-                        `[${stamp}] Add-Scores ${scores.length}: ${messageId ?? 'no-message-id'}`
-                    )
-            
-                    return true
-                } else {
-                    this.logger.error(
-                        `Failed storing ${scores.length} scores for ${stamp}: ${result.Error}`,
-                    )
-                }
-            } catch (error) {
-                this.logger.error(`Exception in addScores`, error.stack)
-            }
-        } else {
-            this.logger.warn(
-                `NOT LIVE: Not adding ${scores.length} scores to distribution contract `,
-            )
-        }
-        
-        return false
+        return this.relayRewardsService.addScores(stamp, scoresForLua)
     }
 
     public async complete(stamp: number): Promise<boolean> {
-        if (this.isLive !== 'true') {
-            this.logger.warn(`NOT LIVE: Not sending the Complete-Round message`)
-
-            return false
-        }
-
-        try {
-            const { messageId, result } = await sendAosMessage({
-                processId: this.relayRewardsProcessId,
-                signer: this.signer as any, // NB: types, lol
-                tags: [
-                    { name: 'Action', value: 'Complete-Round' },
-                    { name: 'Timestamp', value: stamp.toString() },
-                ]
-            })
-    
-            if (!result.Error) {
-                this.logger.log(
-                    `[${stamp}] Complete-Round: ${messageId ?? 'no-message-id'}`
-                )
-        
-                return true
-            } else {
-                this.logger.error(
-                    `Failed Complete-Round for ${stamp}: ${result.Error}`,
-                )
-            }
-        } catch (error) {
-            this.logger.error('Exception in distribute', error.stack)
-        }
-        return false
+        return this.relayRewardsService.completeRound(stamp)
     }
 
     public async persistRound(stamp: number): Promise<boolean> {
-        const metadata: RoundMetadata = ...
-        const data: RoundData = ...
+        const snapshot: RoundSnapshot | undefined = await this.relayRewardsService.getLastSnapshot()
             
-        if (data.Timestamp != stamp || metadata.Timestamp != stamp) {
+        if (!snapshot) {
+            this.logger.error('Last snapshot not found')
+            return false
+        }
+        if (snapshot.Timestamp != stamp || snapshot.Timestamp != stamp) {
             this.logger.warn('Different stamp in returned for previous round. Skipping persistence as either there is a newer one, or can\'t confirm the round was sucessfully completed')
             return false
         }
@@ -249,7 +130,7 @@ export class DistributionService {
 
             if (this.isLive !== 'true') {
                 this.logger.warn(
-                    `NOT LIVE: Not storing distribution/summary [${data.Timestamp}]`
+                    `NOT LIVE: Not storing distribution/summary [${snapshot.Timestamp}]`
                 )
 
                 return false
@@ -260,7 +141,7 @@ export class DistributionService {
                 { name: 'Protocol-Version', value: '0.2' },
                 {
                     name: 'Content-Timestamp',
-                    value: data.Timestamp.toString(),
+                    value: snapshot.Timestamp.toString(),
                 },
                 {
                     name: 'Content-Type',
@@ -268,51 +149,51 @@ export class DistributionService {
                 },
                 { name: 'Entity-Type', value: 'distribution/summary' },
                 
-                { name: 'Time-Elapsed', value: data.Period.toString() },
-                { name: 'Distribution-Rate', value: metadata.Configuration.TokensPerSecond.toString() },
-                { name: 'Distributed-Tokens', value: metadata.Summary.Total.toString() },
+                { name: 'Time-Elapsed', value: snapshot.Period.toString() },
+                { name: 'Distribution-Rate', value: snapshot.Configuration.TokensPerSecond.toString() },
+                { name: 'Distributed-Tokens', value: snapshot.Summary.Total.toString() },
 
                 {
                     name: 'Hardware-Bonus-Enabled',
-                    value: metadata.Configuration.Modifiers.Hardware.Enabled.toString()
+                    value: snapshot.Configuration.Modifiers.Hardware.Enabled.toString()
                 },
                 {
                     name: 'Hardware-Bonus-Distributed-Tokens',
-                    value: metadata.Summary.Hardware.toString()
+                    value: snapshot.Summary.Hardware.toString()
                 },
                 {
                     name: 'Uptime-Bonus-Enabled',
-                    value: metadata.Configuration.Modifiers.Uptime.Enabled.toString()
+                    value: snapshot.Configuration.Modifiers.Uptime.Enabled.toString()
                 },
                 {
                     name: 'Uptime-Bonus-Distributed-Tokens',
-                    value: metadata.Summary.Uptime.toString()
+                    value: snapshot.Summary.Uptime.toString()
                 },
                 {
                     name: 'Exit-Bonus-Enabled',
-                    value: metadata.Configuration.Modifiers.ExitBonus.Enabled.toString()
+                    value: snapshot.Configuration.Modifiers.ExitBonus.Enabled.toString()
                 },
                 {
                     name: 'Exit-Bonus-Distributed-Tokens',
-                    value: metadata.Summary.ExitBonus.toString()
+                    value: snapshot.Summary.ExitBonus.toString()
                 },
 
                 {
                     name: 'Family-Multiplier-Enabled',
-                    value: metadata.Configuration.Multipliers.Family.Enabled.toString()
+                    value: snapshot.Configuration.Multipliers.Family.Enabled.toString()
                 },
                 {
                     name: 'Location-Multiplier-Enabled',
-                    value: metadata.Configuration.Multipliers.Location.Enabled.toString()
+                    value: snapshot.Configuration.Multipliers.Location.Enabled.toString()
                 },
                 {
                     name: 'Total-Distributed-Tokens',
-                    value: metadata.Summary.Total.toString()
+                    value: snapshot.Summary.Total.toString()
                 },
             ]
 
             const { id: summary_tx } = await this.bundler.upload(
-                JSON.stringify({ ...metadata, ...data }),
+                JSON.stringify(snapshot),
                 { tags }
             )
 
