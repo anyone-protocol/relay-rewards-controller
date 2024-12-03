@@ -8,6 +8,7 @@ import { DistributionModule } from './distribution/distribution.module'
 import { BullModule } from '@nestjs/bullmq'
 import { ClusterModule } from './cluster/cluster.module'
 import { RelayRewardsModule } from './relay-rewards/relay-rewards.module';
+import { OperatorRegistryModule } from './operator-registry/operator-registry.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { RelayRewardsModule } from './relay-rewards/relay-rewards.module';
     DistributionModule,
     ClusterModule,
     RelayRewardsModule,
+    OperatorRegistryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

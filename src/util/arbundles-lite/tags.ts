@@ -27,7 +27,9 @@ export class AVSCTap {
         // for this use case, assume tags/strings.
         const tag = tags[i]
         if (typeof tag?.name !== 'string' || typeof tag?.value !== 'string')
-          throw new Error(`Invalid tag format for ${tag}, expected {name:string, value: string}`)
+          throw new Error(
+            `Invalid tag format for ${tag}, expected {name:string, value: string}`
+          )
         this.writeString(tag.name)
         this.writeString(tag.value)
         // this.itemsType._write(tap, val[i]);
@@ -38,7 +40,8 @@ export class AVSCTap {
 
   public toBuffer(): Buffer {
     const buffer = Buffer.alloc(this.pos)
-    if (this.pos > this.buf.length) throw new Error(`Too many tag bytes (${this.pos} > ${this.buf.length})`)
+    if (this.pos > this.buf.length)
+      throw new Error(`Too many tag bytes (${this.pos} > ${this.buf.length})`)
     this.buf.copy(buffer, 0, 0, this.pos)
     return buffer
   }
@@ -107,7 +110,10 @@ export class AVSCTap {
         } else if (c1 < 0x800) {
           buf[pos++] = (c1 >> 6) | 0xc0
           buf[pos++] = (c1 & 0x3f) | 0x80
-        } else if ((c1 & 0xfc00) === 0xd800 && ((c2 = s.charCodeAt(i + 1)) & 0xfc00) === 0xdc00) {
+        } else if (
+          (c1 & 0xfc00) === 0xd800 &&
+          ((c2 = s.charCodeAt(i + 1)) & 0xfc00) === 0xdc00
+        ) {
           c1 = 0x10000 + ((c1 & 0x03ff) << 10) + (c2 & 0x03ff)
           i++
           buf[pos++] = (c1 >> 18) | 0xf0

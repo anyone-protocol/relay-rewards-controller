@@ -25,11 +25,20 @@ export default class Rsa4096Pss implements Signer {
   sign(message: Uint8Array): Uint8Array {
     return createSign('sha256').update(message).sign({
       key: this._key,
-      padding: constants.RSA_PKCS1_PSS_PADDING,
+      padding: constants.RSA_PKCS1_PSS_PADDING
     })
   }
 
-  static async verify(pk: string | Buffer, message: Uint8Array, signature: Uint8Array): Promise<boolean> {
-    return verify('rsa-pss', message, Buffer.isBuffer(pk) ? base64url.encode(pk) : pk, signature)
+  static async verify(
+    pk: string | Buffer,
+    message: Uint8Array,
+    signature: Uint8Array
+  ): Promise<boolean> {
+    return verify(
+      'rsa-pss',
+      message,
+      Buffer.isBuffer(pk) ? base64url.encode(pk) : pk,
+      signature
+    )
   }
 }

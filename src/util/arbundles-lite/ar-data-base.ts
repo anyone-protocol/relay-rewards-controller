@@ -18,7 +18,7 @@ async function getSignatureData(item: DataItem): Promise<Uint8Array> {
     item.rawTarget,
     item.rawAnchor,
     item.rawTags,
-    item.rawData,
+    item.rawData
   ])
 }
 

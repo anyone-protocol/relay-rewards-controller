@@ -17,6 +17,9 @@ export class ScoreData {
   @Prop({ type: Boolean, required: false, default: false })
   IsHardware?: boolean = false
 
+  @Prop({ type: Boolean, required: false, default: false })
+  ExitBonus?: boolean = false
+
   @Prop({ type: Number, required: false, default: 0 })
   UptimeStreak?: number = 0
 

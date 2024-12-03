@@ -6,6 +6,14 @@ import _ from 'lodash'
 import { RelayRewardsService } from 'src/relay-rewards/relay-rewards.service'
 import { AddScoresData } from './dto/add-scores'
 import RoundSnapshot from './dto/round-snapshot'
+import { HttpService } from '@nestjs/axios'
+import { AxiosError } from 'axios'
+import { firstValueFrom, catchError } from 'rxjs'
+import { latLngToCell } from 'h3-js'
+import * as geoip from 'geoip-lite'
+import { RelayInfo } from './interfaces/8_3/relay-info'
+import { DetailsResponse } from './interfaces/8_3/details-response'
+import { OperatorRegistryService } from 'src/operator-registry/operator-registry.service'
 
 @Injectable()
 export class DistributionService {
@@ -23,10 +31,15 @@ export class DistributionService {
             BUNDLER_NODE: string
             BUNDLER_NETWORK: string
             BUNDLER_CONTROLLER_KEY: string
+            ONIONOO_DETAILS_URI: string
+            DETAILS_URI_AUTH: string
         }>,
         private readonly relayRewardsService: RelayRewardsService,
+        private readonly operatorRegistryService: OperatorRegistryService,
+        private readonly httpService: HttpService,
     ) {
         this.isLive = config.get<string>('IS_LIVE', { infer: true })
+        geoip.startWatchingDataUpdate()
 
         this.logger.log(
             `Initializing distribution service (IS_LIVE: ${this.isLive})`,
@@ -96,8 +109,124 @@ export class DistributionService {
         return result
     }
 
+    private async fetchRelays(): Promise<RelayInfo[]> {
+
+        var relays: RelayInfo[] = []
+        const detailsUri = this.config.get<string>('ONIONOO_DETAILS_URI', {
+            infer: true,
+        })
+        if (detailsUri !== undefined) {
+            const detailsAuth: string = this.config.get<string>('DETAILS_URI_AUTH', {
+                infer: true,
+            }) || ""
+            const requestStamp = Date.now()
+            try {
+                const { headers, status, data } = await firstValueFrom(
+                    this.httpService
+                        .get<DetailsResponse>(detailsUri, {
+                            headers: {
+                                'content-encoding': 'gzip',
+                                'authorization': `${detailsAuth}`
+                            },
+                            validateStatus: (status) =>
+                                status === 304 || status === 200,
+                        })
+                        .pipe(
+                            catchError((error: AxiosError) => {
+                                this.logger.error(
+                                    `Fetching relays from ${detailsUri} failed with ${error.response?.status??"?"}, ${error}`,
+                                )
+                                throw 'Failed to fetch relay details'
+                            }),
+                        ),
+                )
+
+                this.logger.debug(
+                    `Fetch details from ${detailsUri} response ${status}`,
+                )
+                if (status === 200) {
+                    relays = data.relays
+
+                    this.logger.log(
+                        `Received ${relays.length} relays from network details`,
+                    )
+                } else this.logger.debug('No relay updates from network details')
+            } catch (e) {
+                this.logger.error('Exception when fetching details of network relays', e.stack)
+            }
+        } else
+            this.logger.warn(
+                'Set the ONIONOO_DETAILS_URI in ENV vars or configuration',
+            )
+
+        return relays
+    }
+
+    private ipToGeoHex(ip: string): string {
+        let portIndex = ip.indexOf(':')
+        let cleanIp = ip.substring(0, portIndex)
+        let lookupRes = geoip.lookup(cleanIp)?.ll
+        if (lookupRes != undefined) {
+            let [lat, lng] = lookupRes
+            return latLngToCell(lat, lng, 4) // resolution 4 - avg hex area 1,770 km^2
+        } else return '?'
+    }
+
+    private parseLocations(
+        relays: RelayInfo[], verificationData: { [key: string]: string }
+    ): { sizes: { [key: string]: number }, cells: { [key: string]: string } } {
+        
+        const sizes: { [key: string]: number } = {}
+        const cells: { [key: string]: string } = {}
+        
+        relays.forEach((relay) => {
+            if (verificationData[relay.fingerprint]) {
+                const cell = this.ipToGeoHex(relay.or_addresses[0])
+                cells[relay.fingerprint] = cell
+                if (sizes[cell] == undefined) sizes[cell] = 0
+                sizes[cell] += 1
+            }
+        })
+
+        return { sizes, cells }
+    }
+
+    private async fetchUptimeStreaks(fingerprints: string[]): Promise<{ [key: string]: number}> {
+        return {}
+    }
+
     public async getCurrentScores(stamp: number): Promise<ScoreData[]> {
-        return []
+        const relaysData = await this.fetchRelays()
+        const verificationData = await this.operatorRegistryService.fetchVerifiedOperators()
+        const hardwareData = await this.operatorRegistryService.fetchHardwareFingerprints()
+        const uptimeStreaks = await this.fetchUptimeStreaks(Object.keys(verificationData))
+
+        const { sizes, cells } = this.parseLocations(relaysData, verificationData)
+
+        const scores: ScoreData[] = []
+        
+        relaysData.forEach((relay) => {
+            const verifiedAddress = verificationData[relay.fingerprint]
+            if (verifiedAddress && verifiedAddress.length > 0) {
+                const locationCell = cells[relay.fingerprint]??''
+                const locationSize = sizes[locationCell]??0
+                const score: ScoreData = {
+                    Fingerprint: relay.fingerprint,
+                    Address: verifiedAddress,
+                    Network: relay.consensus_weight,
+                    FamilySize: (relay.effective_family?.length??1) - 1,
+                    IsHardware: hardwareData[relay.fingerprint]??false,
+                    LocationSize: locationSize - 1,
+                    UptimeStreak: uptimeStreaks[relay.fingerprint]??0,
+                    ExitBonus: relay.flags?.includes('Exit')??false
+                }
+                scores.push(score)
+            } else {
+                this.logger.debug(`Found unverified relay in network details ${relay.fingerprint}`)
+            }
+        })
+
+        return scores
     }
 
     public async addScores(stamp: number, scores: ScoreData[]): Promise<boolean> {

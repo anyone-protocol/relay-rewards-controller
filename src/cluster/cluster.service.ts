@@ -34,7 +34,7 @@ export class ClusterService implements OnApplicationBootstrap, BeforeApplication
 
   private nodeList = []
 
-  private consul?: Consul.Consul
+  private consul?: Consul
 
   constructor(
     private readonly config: ConfigService<{

@@ -5,7 +5,10 @@ export abstract class Signer {
   readonly ownerLength: number
   readonly pem?: string | Buffer
 
-  abstract sign(message: Uint8Array, _opts?: any): Promise<Uint8Array> | Uint8Array
+  abstract sign(
+    message: Uint8Array,
+    _opts?: any
+  ): Promise<Uint8Array> | Uint8Array
   static verify(
     /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     _pk: string | Buffer,

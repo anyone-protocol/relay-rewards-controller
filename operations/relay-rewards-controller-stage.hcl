@@ -29,6 +29,7 @@ job "relay-rewards-controller-stage" {
         data = <<EOH
         {{with secret "kv/valid-ator/stage"}}
           RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.DISTRIBUTION_OPERATOR_KEY}}"
+          OPERATOR_REGISTRY_CONTROLLER_KEY="{{.Data.data.RELAY_REGISTRY_OPERATOR_KEY}}"
 
           BUNDLER_NETWORK="{{.Data.data.IRYS_NETWORK}}"
           BUNDLER_CONTROLLER_KEY="{{.Data.data.DISTRIBUTION_OPERATOR_KEY}}"

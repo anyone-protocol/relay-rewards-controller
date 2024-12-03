@@ -14,7 +14,11 @@ import type { Signer } from './signing/index'
  * @param opts - Options involved in creating data items
  * @param signer
  */
-export function createData(data: string | Uint8Array, signer: Signer, opts?: DataItemCreateOptions): DataItem {
+export function createData(
+  data: string | Uint8Array,
+  signer: Signer,
+  opts?: DataItemCreateOptions
+): DataItem {
   // TODO: Add asserts
   // Parse all values to a buffer and
   const _owner = signer.publicKey
@@ -23,14 +27,21 @@ export function createData(data: string | Uint8Array, signer: Signer, opts?: Dat
   const target_length = 1 + (_target?.byteLength ?? 0)
   const _anchor = opts?.anchor ? Buffer.from(opts.anchor) : null
   const anchor_length = 1 + (_anchor?.byteLength ?? 0)
-  const _tags = (opts?.tags?.length ?? 0) > 0 ? serializeTags(opts?.tags as Tag[]) : null
+  const _tags =
+    (opts?.tags?.length ?? 0) > 0 ? serializeTags(opts?.tags as Tag[]) : null
   const tags_length = 16 + (_tags ? _tags.byteLength : 0)
   const _data = typeof data === 'string' ? Buffer.from(data) : Buffer.from(data)
   const data_length = _data.byteLength
 
   // See [https://github.com/joshbenaron/arweave-standards/blob/ans104/ans/ANS-104.md#13-dataitem-format]
   const length =
-    2 + signer.signatureLength + signer.ownerLength + target_length + anchor_length + tags_length + data_length
+    2 +
+    signer.signatureLength +
+    signer.ownerLength +
+    target_length +
+    anchor_length +
+    tags_length +
+    data_length
   // Create array with set length
   const bytes = Buffer.alloc(length)
 
@@ -42,7 +53,9 @@ export function createData(data: string | Uint8Array, signer: Signer, opts?: Dat
   // Push bytes for `owner`
 
   if (_owner.byteLength !== signer.ownerLength)
-    throw new Error(`Owner must be ${signer.ownerLength} bytes, but was incorrectly ${_owner.byteLength}`)
+    throw new Error(
+      `Owner must be ${signer.ownerLength} bytes, but was incorrectly ${_owner.byteLength}`
+    )
   bytes.set(_owner, 2 + signer.signatureLength)
 
   const position = 2 + signer.signatureLength + signer.ownerLength
@@ -50,7 +63,10 @@ export function createData(data: string | Uint8Array, signer: Signer, opts?: Dat
   // 64 + OWNER_LENGTH
   bytes[position] = _target ? 1 : 0
   if (_target) {
-    if (_target.byteLength !== 32) throw new Error(`Target must be 32 bytes but was incorrectly ${_target.byteLength}`)
+    if (_target.byteLength !== 32)
+      throw new Error(
+        `Target must be 32 bytes but was incorrectly ${_target.byteLength}`
+      )
     bytes.set(_target, position + 1)
   }
 
