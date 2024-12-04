@@ -28,8 +28,8 @@ job "relay-rewards-controller-live" {
 
     task "relay-rewards-controller-live-service" {
       driver = "docker"
-      network_mode = "host"
       config {
+        network_mode = "host"
         image = "ghcr.io/anyone-protocol/relay-rewards-controller:[[.deploy]]"
         force_pull = true
       }
