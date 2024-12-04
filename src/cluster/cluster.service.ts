@@ -50,6 +50,7 @@ export class ClusterService implements OnApplicationBootstrap, BeforeApplication
     if (this.isLive === 'true') {
       if (host != undefined && port != undefined) {
         this.serviceName = this.config.get<string>('SERVICE_NAME', { infer: true })
+        this.serviceId = `${this.serviceName}-${uuidv4()}`
         this.logger.log(`Connecting to Consul at ${host}:${port} with service: ${this.serviceName}`)
         this.consul = new Consul({ host, port })
       } else {
@@ -68,7 +69,7 @@ export class ClusterService implements OnApplicationBootstrap, BeforeApplication
         this.sessionId = await this.createSession()
         this.startLeaderElection()
       } catch (error) {
-        this.logger.error('Failed to initialize clustering discovery:', error)
+        this.logger.error(`Failed to initialize clustering discovery: ${error.message}`, error.stack)
       }
     }
   }
