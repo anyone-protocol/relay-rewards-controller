@@ -13,7 +13,7 @@ export function isFingerprintValid(fingerprint?: string) {
     return false
   }
 
-  if (!fingerprint.split('').every((c) => UPPER_HEX_CHARS.includes(c))) {
+  if (!fingerprint.split('').every(c => UPPER_HEX_CHARS.includes(c))) {
     return false
   }
 

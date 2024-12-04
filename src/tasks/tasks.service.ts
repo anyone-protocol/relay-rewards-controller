@@ -3,9 +3,6 @@ import { InjectQueue, InjectFlowProducer } from '@nestjs/bullmq'
 import { Queue, FlowProducer, FlowJob } from 'bullmq'
 import { ScoreData } from '../distribution/schemas/score-data'
 import { ConfigService } from '@nestjs/config'
-import { TaskServiceData } from './schemas/task-service-data'
-import { InjectModel } from '@nestjs/mongoose'
-import { Model, Types } from 'mongoose'
 import { ClusterService } from '../cluster/cluster.service'
 
 @Injectable()
@@ -17,7 +14,7 @@ export class TasksService implements OnApplicationBootstrap {
   static readonly removeOnComplete = true
   static readonly removeOnFail = 8
 
-  private readonly minRoundLength = 1000 * 60 * 60 * 4
+  private readonly minRoundLength = 1000 * 60 * 60
   private lastRunAt = 0
 
   public static jobOpts = {
@@ -97,22 +94,29 @@ export class TasksService implements OnApplicationBootstrap {
   public async queueDistribution(): Promise<void> {
     const now = Date.now()
     if (now - this.lastRunAt >= this.minRoundLength) {
-      return this.distributionQueue.add('start-distribution', now, TasksService.jobOpts)
-        .then((job) => {
-          this.lastRunAt = now
-        }, (error) => this.logger.error('Failed adding distribution job to queue', error.message, error.stack))
-    } else {
-      const timeOffset = this.minRoundLength - (now - this.lastRunAt)
+      try {
+        await this.distributionQueue.add('start-distribution', now, TasksService.jobOpts)
+        this.lastRunAt = now
+      } catch(error) {
+        this.logger.error('Failed adding distribution job to queue', error.message, error.stack)
+      }
+    }
 
-      return this.tasksQueue.add(
-        'distribute',
+    const timeOffset = this.minRoundLength - (now - this.lastRunAt)
+    this.logger.log(`Queueing distribution for recheck in ... ${timeOffset/1000}s`)
+    return this.tasksQueue
+      .add(
+        'queued-distribute',
         {},
         {
           delay: timeOffset,
           removeOnComplete: TasksService.removeOnComplete,
           removeOnFail: TasksService.removeOnFail,
         }
-      ).then(() => {}, (error) => this.logger.error('Failed adding timed distribution job to queue', error.message, error.stack))
-    }
+      )
+      .then(
+        () => {},
+        error => this.logger.error('Failed adding timed distribution job to queue', error.message, error.stack)
+      )
   }
 }

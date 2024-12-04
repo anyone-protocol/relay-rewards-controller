@@ -7,7 +7,7 @@ import { TasksService } from '../tasks.service'
 export class TasksQueue extends WorkerHost {
   private readonly logger = new Logger(TasksQueue.name)
 
-  public static readonly JOB_DISTRIBUTE = 'distribute'
+  public static readonly JOB_QUEUED_DISTRIBUTE = 'queued-distribute'
 
   constructor(private readonly tasks: TasksService) {
     super()
@@ -17,7 +17,7 @@ export class TasksQueue extends WorkerHost {
     this.logger.debug(`Dequeueing ${job.name} [${job.id}]`)
 
     switch (job.name) {
-      case TasksQueue.JOB_DISTRIBUTE:
+      case TasksQueue.JOB_QUEUED_DISTRIBUTE:
         try {
           return this.tasks.queueDistribution()
         } catch (error) {

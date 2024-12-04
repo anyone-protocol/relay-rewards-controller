@@ -5,7 +5,7 @@ export async function createEthereumDataItemSigner(signer: Signer) {
     data,
     tags,
     target,
-    anchor
+    anchor,
   }: {
     data: string | Uint8Array
     tags: any[]
@@ -16,7 +16,7 @@ export async function createEthereumDataItemSigner(signer: Signer) {
 
     return dataItem.sign(signer).then(async () => ({
       id: await dataItem.id,
-      raw: await dataItem.getRaw()
+      raw: await dataItem.getRaw(),
     }))
   }
 }

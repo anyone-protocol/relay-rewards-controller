@@ -6,11 +6,7 @@ export function isHexStringValid(hex?: string, uppercase: boolean = false) {
     return false
   }
 
-  if (
-    !hex
-      .split('')
-      .every((c) => (uppercase ? UPPER_HEX_CHARS : HEX_CHARS).includes(c))
-  ) {
+  if (!hex.split('').every(c => (uppercase ? UPPER_HEX_CHARS : HEX_CHARS).includes(c))) {
     return false
   }
 
