@@ -4,7 +4,7 @@ job "relay-rewards-controller-stage" {
 
   group "relay-rewards-controller-stage-group" {
     
-    count = 1
+    count = 2
 
     update {
       max_parallel     = 1
@@ -28,6 +28,7 @@ job "relay-rewards-controller-stage" {
 
     task "relay-rewards-controller-stage-service" {
       driver = "docker"
+      network_mode = "host"
       config {
         image = "ghcr.io/anyone-protocol/relay-rewards-controller:[[.deploy]]"
         force_pull = true

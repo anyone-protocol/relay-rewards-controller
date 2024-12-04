@@ -28,6 +28,7 @@ job "relay-rewards-controller-live" {
 
     task "relay-rewards-controller-live-service" {
       driver = "docker"
+      network_mode = "host"
       config {
         image = "ghcr.io/anyone-protocol/relay-rewards-controller:[[.deploy]]"
         force_pull = true
@@ -75,7 +76,7 @@ job "relay-rewards-controller-live" {
         BUNDLER_NODE="https://arweave.mainnet.irys.xyz"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
-        CPU_COUNT="2"
+        CPU_COUNT="3"
         CONSUL_HOST="${NOMAD_IP_http}"
         CONSUL_PORT="8500"
         SERVICE_NAME="relay-rewards-controller-live"
