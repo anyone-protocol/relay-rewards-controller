@@ -6,6 +6,12 @@ job "relay-rewards-controller-stage" {
     
     count = 1
 
+    volume "geo-ip-db" {
+      type      = "host"
+      read_only = false
+      source    = "geo-ip-db"
+    }
+
     network {
       mode = "bridge"
       port "http" {
@@ -56,8 +62,16 @@ job "relay-rewards-controller-stage" {
         IS_LIVE="true"
         VERSION="[[.commit_sha]]"
         BUNDLER_NODE="https://arweave.mainnet.irys.xyz"
+        GEODATADIR="/geo-ip-db/data"
+        GEOTMPDIR="/geo-ip-db/tmp"
         CPU_COUNT="1"
         DO_CLEAN="false"
+      }
+
+      volume_mount {
+        volume      = "geo-ip-db"
+        destination = "/geo-ip-db"
+        read_only   = false
       }
       
       resources {

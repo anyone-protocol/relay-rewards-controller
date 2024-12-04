@@ -57,6 +57,7 @@ export class TasksService implements OnApplicationBootstrap {
     private readonly config: ConfigService<{
       IS_LIVE: string
       DO_CLEAN: string
+      VERSION: string
       MIN_ROUND_LENGTH: number
     }>,
     private readonly cluster: ClusterService,
@@ -72,6 +73,8 @@ export class TasksService implements OnApplicationBootstrap {
       infer: true,
     })
     if (minRound > 0) this.minRoundLength = minRound
+    const version = this.config.get<string>('VERSION', { infer: true })
+    this.logger.log(`Starting Tasks service for Relay Rewards Controller version: ${version}`)
   }
 
   async onApplicationBootstrap(): Promise<void> {
