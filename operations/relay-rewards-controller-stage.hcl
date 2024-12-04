@@ -23,7 +23,7 @@ job "relay-rewards-controller-stage" {
     task "relay-rewards-controller-stage-service" {
       driver = "docker"
       config {
-        image = "ghcr.io/anyone-protocol/valid-ator:[[.deploy]]"
+        image = "ghcr.io/anyone-protocol/relay-rewards-controller:[[.deploy]]"
         force_pull = true
       }
 
