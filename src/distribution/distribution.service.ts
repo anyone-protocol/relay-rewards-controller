@@ -202,7 +202,7 @@ export class DistributionService {
         }
         scores.push(score)
       } else {
-        this.logger.debug(`Found unverified relay in network details ${relay.fingerprint}`)
+        // this.logger.debug(`Found unverified relay in network details ${relay.fingerprint}`)
       }
     })
 
