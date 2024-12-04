@@ -21,7 +21,6 @@ job "relay-rewards-controller-stage" {
     network {
       mode = "bridge"
       port "http" {
-        to = 3000
         host_network = "wireguard"
       }
     }
@@ -82,6 +81,7 @@ job "relay-rewards-controller-stage" {
         SERVICE_NAME="relay-rewards-controller-stage"
         ROUND_PERIOD_SECONDS="360"
         DO_CLEAN="false"
+        PORT="${NOMAD_PORT_http}"
       }
 
       volume_mount {

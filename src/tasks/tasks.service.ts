@@ -106,7 +106,7 @@ export class TasksService implements OnApplicationBootstrap {
         return this.queueDistribution()
       }
     } else {
-      this.logger.debug('Not the local leader, skipping bootstrap of tasks service')
+      // this.logger.debug('Not the local leader, skipping bootstrap of tasks service')
     }
   }
 
