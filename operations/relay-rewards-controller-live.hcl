@@ -96,6 +96,7 @@ job "relay-rewards-controller-live" {
       service {
         name = "relay-rewards-controller-live"
         port = "http"
+        tags = ["logging"]
         
         check {
           name     = "live relay-rewards-controller health check"

@@ -92,7 +92,7 @@ job "relay-rewards-controller-stage" {
       service {
         name = "relay-rewards-controller-stage"
         port = "http"
-        
+        tags = ["logging"]
         check {
           name     = "stage relay-rewards-controller health check"
           type     = "http"
