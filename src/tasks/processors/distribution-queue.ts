@@ -102,49 +102,49 @@ export class DistributionQueue extends WorkerHost {
   }
 
   async completeDistributionHandler(job: Job<{ stamp: number; total: number }, boolean, string>): Promise<boolean> {
-    return job
-      .getChildrenValues()
-      .then(
-        jobValues => {
-          const jobsData = Object.values(jobValues)
-          const { processed, failed } = jobsData.reduce(
-            (acc, curr) => {
-              if (curr.result) {
-                acc.processed.push(...curr.scored)
-              } else {
-                acc.failed.push(...curr.scored)
-              }
-              return acc
-            },
-            { processed: [] as string[], failed: [] as string[] }
-          )
+    return job.getChildrenValues().then(
+      jobValues => {
+        const jobsData = Object.values(jobValues)
+        const { processed, failed } = jobsData.reduce(
+          (acc, curr) => {
+            if (curr.result) {
+              acc.processed.push(...curr.scored)
+            } else {
+              acc.failed.push(...curr.scored)
+            }
+            return acc
+          },
+          { processed: [] as string[], failed: [] as string[] }
+        )
 
-          if (processed.length < job.data.total) {
-            this.logger.warn(`Processed less scores (${processed.length}) then the total found (${job.data.total})`)
-          } else if (processed.length == 0) {
-            this.logger.warn(`No scores found to process`)
-          } else {
-            this.logger.log(`Processed ${processed.length} scores`)
-          }
+        if (processed.length < job.data.total) {
+          this.logger.warn(`Processed less scores (${processed.length}) then the total found (${job.data.total})`)
+        } else if (processed.length == 0) {
+          this.logger.warn(`No scores found to process`)
+        } else {
+          this.logger.log(`Processed ${processed.length} scores`)
+        }
 
-          if (processed.length > 0) {
-            return this.distribution.complete(job.data.stamp)
-          } else {
-            return false
-          }
-        },
-        error => {
-          this.logger.error('Exception while completing distribution', error.message, error.stack)
+        if (processed.length > 0) {
+          return this.distribution.complete(job.data.stamp)
+        } else {
           return false
         }
-      )
+      },
+      error => {
+        this.logger.error('Exception while completing distribution', error.message, error.stack)
+        return false
+      }
+    )
   }
 
   async persistDistributionHandler(job: Job<{ stamp: number }, boolean, string>): Promise<boolean> {
     try {
-      const isComplete = Object.values(await job.getChildrenValues())[0]??false
+      const isComplete = Object.values(await job.getChildrenValues())[0] ?? false
       if (!isComplete) {
-        this.logger.warn(`Round was not marked as completed. Skipping persisting of distribution summary [${job.data.stamp}]`)  
+        this.logger.warn(
+          `Round was not marked as complete. Skipping persisting of distribution summary [${job.data.stamp}]`
+        )
         return false
       }
       this.logger.log(`Persisting distribution summary [${job.data.stamp}]`)

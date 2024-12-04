@@ -47,10 +47,7 @@ job "relay-rewards-controller-live" {
           BUNDLER_CONTROLLER_KEY="{{.Data.data.DISTRIBUTION_OPERATOR_KEY}}"
 
           JSON_RPC="{{.Data.data.JSON_RPC}}"
-          
-          EVM_NETWORK="{{.Data.data.INFURA_NETWORK}}"
-          EVM_PRIMARY_WSS="{{.Data.data.INFURA_WS_URL}}"
-          EVM_SECONDARY_WSS="{{.Data.data.ALCHEMY_WS_URL}}"
+          CONSUL_HTTP_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
         OPERATOR_REGISTRY_PROCESS_ID="[[ consulKey "smart-contracts/live/operator-registry-address" ]]"
         RELAY_REWARDS_PROCESS_ID="[[ consulKey "smart-contracts/live/relay-rewards-address" ]]"
@@ -79,6 +76,10 @@ job "relay-rewards-controller-live" {
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
         CPU_COUNT="2"
+        CONSUL_HOST="${NOMAD_IP_http}"
+        CONSUL_PORT="8500"
+        SERVICE_NAME="relay-rewards-controller-live"
+        ROUND_PERIOD_SECONDS="360"
         DO_CLEAN="false"
       }
 

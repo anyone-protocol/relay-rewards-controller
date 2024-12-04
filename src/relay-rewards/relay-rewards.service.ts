@@ -62,8 +62,8 @@ export class RelayRewardsService {
         processId: this.relayRewardsProcessId,
         signer: this.signer as any, // NB: types, lol
         tags: [
-            { name: 'Action', value: 'Last-Snapshot' },
-            { name: 'Timestamp', value: Date.now().toString() },
+          { name: 'Action', value: 'Last-Snapshot' },
+          { name: 'Timestamp', value: Date.now().toString() },
         ],
       })
 

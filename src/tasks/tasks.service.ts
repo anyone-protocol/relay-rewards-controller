@@ -18,7 +18,7 @@ export class TasksService implements OnApplicationBootstrap {
   static readonly removeOnComplete = true
   static readonly removeOnFail = 8
 
-  private readonly minRoundLength = 1000 * 60 // * 60
+  private minRoundLength = 1000 * 60
 
   public static jobOpts = {
     removeOnComplete: TasksService.removeOnComplete,
@@ -61,7 +61,7 @@ export class TasksService implements OnApplicationBootstrap {
       IS_LIVE: string
       DO_CLEAN: string
       VERSION: string
-      MIN_ROUND_LENGTH: number
+      ROUND_PERIOD_SECONDS: number
     }>,
     private readonly cluster: ClusterService,
     @InjectQueue('tasks-queue')
@@ -74,16 +74,16 @@ export class TasksService implements OnApplicationBootstrap {
     private readonly taskServiceDataModel: Model<TaskServiceData>
   ) {
     this.doClean = this.config.get<string>('DO_CLEAN', { infer: true })
-    const minRound: number = this.config.get<number>('MIN_ROUND_LENGTH', {
+    const minRound: number = this.config.get<number>('ROUND_PERIOD_SECONDS', {
       infer: true,
     })
-    if (minRound > 0) this.minRoundLength = minRound
+    if (minRound > 0) this.minRoundLength = minRound * 1000
     const version = this.config.get<string>('VERSION', { infer: true })
     this.logger.log(`Starting Tasks service for Relay Rewards Controller version: ${version}`)
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    if (this.cluster.isTheOne()) {
+    if (this.cluster.isLocalLeader()) {
       if (this.doClean == 'true') {
         this.logger.log('Cleaning up jobs...')
         try {
@@ -94,13 +94,15 @@ export class TasksService implements OnApplicationBootstrap {
           this.logger.error('Failed cleaning up queues', error.message, error.stack)
         }
       }
-      
+
       const lastData = await this.taskServiceDataModel.findOne().sort({ startedAt: -1 }).limit(1)
       if (lastData) {
-        this.logger.log(`Bootstrapped Tasks service with ${lastData.startedAt}(${lastData.complete}, ${lastData.persisted})`)
+        this.logger.log(
+          `Bootstrapped Tasks service with ${lastData.startedAt}(${lastData.complete}, ${lastData.persisted})`
+        )
         return
       } else {
-        this.logger.log(`Bootstrapped Tasks service with new distribution queue`)
+        this.logger.log(`Bootstrapping Tasks service with a new distribution queue`)
         return this.queueDistribution()
       }
     } else {
@@ -114,20 +116,20 @@ export class TasksService implements OnApplicationBootstrap {
 
   public async queueDistribution(): Promise<void> {
     const lastData = await this.taskServiceDataModel.findOne().sort({ startedAt: -1 }).limit(1)
-    const lastStart = lastData?lastData.startedAt : 0
-    
+    const lastStart = lastData ? lastData.startedAt : 0
+
     const now = Date.now()
     if (now - lastStart >= this.minRoundLength) {
       try {
         await this.distributionQueue.add('start-distribution', now, TasksService.jobOpts)
         await this.taskServiceDataModel.create({ startedAt: now })
-      } catch(error) {
+      } catch (error) {
         this.logger.error('Failed adding distribution job to queue', error.message, error.stack)
       }
     }
 
     const timeOffset = Math.max(0, this.minRoundLength - (now - lastStart))
-    this.logger.log(`Queueing distribution for recheck in ... ${timeOffset/1000}s`)
+    this.logger.log(`Queueing distribution for recheck in ... ${timeOffset / 1000}s`)
     return this.tasksQueue
       .add(
         'queued-distribute',

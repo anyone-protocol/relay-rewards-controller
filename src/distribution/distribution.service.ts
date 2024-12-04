@@ -226,7 +226,7 @@ export class DistributionService {
 
   public async persistRound(stamp: number): Promise<boolean> {
     const snapshot: RoundSnapshot | undefined = await this.relayRewardsService.getLastSnapshot()
-    
+
     if (!snapshot || snapshot.Timestamp == 0) {
       this.logger.error('Last snapshot not found')
       return false
