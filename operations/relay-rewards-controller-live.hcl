@@ -78,7 +78,7 @@ job "relay-rewards-controller-live" {
         CONSUL_HOST="${NOMAD_IP_http}"
         CONSUL_PORT="8500"
         SERVICE_NAME="relay-rewards-controller-live"
-        ROUND_PERIOD_SECONDS="360"
+        ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="false"
         PORT="${NOMAD_PORT_http}"
       }

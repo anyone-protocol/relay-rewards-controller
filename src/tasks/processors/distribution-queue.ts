@@ -63,7 +63,7 @@ export class DistributionQueue extends WorkerHost {
         )
 
         this.logger.log(
-          `Started distribution ${job.data} with ${filtered.length} non-zero scores grouped to ${scoreGroups.length} jobs`
+          `Starting distribution ${job.data} with ${filtered.length} non-zero scores grouped to ${scoreGroups.length} jobs`
         )
         return true
       },
