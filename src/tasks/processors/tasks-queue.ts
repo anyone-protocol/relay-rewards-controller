@@ -1,5 +1,5 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq'
-import { Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { Job } from 'bullmq'
 import { TasksService } from '../tasks.service'
 
@@ -9,7 +9,9 @@ export class TasksQueue extends WorkerHost {
 
   public static readonly JOB_QUEUED_DISTRIBUTE = 'queued-distribute'
 
-  constructor(private readonly tasks: TasksService) {
+  constructor(
+    private readonly tasks: TasksService
+  ) {
     super()
   }
 

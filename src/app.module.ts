@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common'
 import { AppController } from './app.controller'
-import { AppService } from './app.service'
 import { TasksModule } from './tasks/tasks.module'
 import { MongooseModule } from '@nestjs/mongoose'
 import { ConfigModule, ConfigService } from '@nestjs/config'
@@ -40,6 +39,5 @@ import { OperatorRegistryModule } from './operator-registry/operator-registry.mo
     OperatorRegistryModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

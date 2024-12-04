@@ -1,4 +1,4 @@
-import { BeforeApplicationShutdown, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
+import { BeforeApplicationShutdown, Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import Consul from 'consul'
 import { Append, AppendResult, Config, State, Vote, VoteResult } from './interfaces/raft-types'
@@ -14,17 +14,6 @@ export class ClusterService implements OnApplicationBootstrap, BeforeApplication
   // false - should receive external events, and be ready to become a leader
   // undefined - wait for leader resolution to finish
   public isLeader?: boolean
-
-  public isLocalLeader(): boolean {
-    let isLL = process.env['IS_LOCAL_LEADER']
-    return isLL != undefined && isLL == 'true'
-  }
-
-  public isTheOne(): boolean {
-    const isLL = this.isLocalLeader()
-    this.logger.debug(`is the one? isLeader: ${this.isLeader} isLocalLeader: ${isLL} - ${process.pid}`)
-    return this.isLeader != undefined && this.isLeader == true && isLL
-  }
 
   private isLive?: string
 
@@ -65,6 +54,17 @@ export class ClusterService implements OnApplicationBootstrap, BeforeApplication
       this.logger.warn('Not live, skipping consul based cluster data. Bootstrapping in single node mode...')
       this.isLeader = true
     }
+  }
+
+  public isLocalLeader(): boolean {
+    let isLL = process.env['IS_LOCAL_LEADER']
+    return isLL != undefined && isLL == 'true'
+  }
+
+  public isTheOne(): boolean {
+    const isLL = this.isLocalLeader()
+    this.logger.debug(`is the one? isLeader: ${this.isLeader} isLocalLeader: ${isLL} - ${process.pid}`)
+    return this.isLeader != undefined && this.isLeader == true && isLL
   }
 
   async onApplicationBootstrap(): Promise<void> {

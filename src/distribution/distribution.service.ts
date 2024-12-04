@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ScoreData } from './schemas/score-data'
 import { ConfigService } from '@nestjs/config'
 import Bundlr from '@bundlr-network/client'

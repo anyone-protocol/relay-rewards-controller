@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AosSigningFunction, sendAosDryRun } from '../util/send-aos-message'
 import { createEthereumDataItemSigner } from '../util/create-ethereum-data-item-signer'
 import { Wallet } from 'ethers'

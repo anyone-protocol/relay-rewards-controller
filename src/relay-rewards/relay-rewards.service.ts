@@ -1,14 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common'
-import RoundData from 'src/distribution/dto/round-data'
-import RoundMetadata from 'src/distribution/dto/round-metadata'
-
-import { AosSigningFunction, sendAosDryRun, sendAosMessage } from '../util/send-aos-message'
+import { Inject, Injectable, Logger, LoggerService, } from '@nestjs/common'
+import { AosSigningFunction, sendAosMessage } from '../util/send-aos-message'
 import { createEthereumDataItemSigner } from '../util/create-ethereum-data-item-signer'
 import { Wallet } from 'ethers'
 import _ from 'lodash'
 import { EthereumSigner } from '../util/arbundles-lite'
 import { ConfigService } from '@nestjs/config'
-import { AddScoresData, AddScoresResult } from 'src/distribution/dto/add-scores'
+import { AddScoresData } from 'src/distribution/dto/add-scores'
 import RoundSnapshot from 'src/distribution/dto/round-snapshot'
 
 @Injectable()

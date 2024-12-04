@@ -44,9 +44,11 @@
     "keccak": "^3.0.4",
     "lodash": "^4.17.21",
     "mongoose": "^8.7.2",
+    "nest-winston": "^1.9.7",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "secp256k1": "^5.0.1",
+    "winston": "^3.17.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

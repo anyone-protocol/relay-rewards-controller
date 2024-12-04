@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
+import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { InjectQueue, InjectFlowProducer } from '@nestjs/bullmq'
 import { Queue, FlowProducer, FlowJob } from 'bullmq'
 import { ScoreData } from '../distribution/schemas/score-data'
@@ -7,7 +7,6 @@ import { ClusterService } from '../cluster/cluster.service'
 import { InjectModel } from '@nestjs/mongoose'
 import { TaskServiceData } from './schemas/task-service-data'
 import { Model } from 'mongoose'
-import { finished } from 'stream'
 
 @Injectable()
 export class TasksService implements OnApplicationBootstrap {
@@ -142,7 +141,10 @@ export class TasksService implements OnApplicationBootstrap {
       )
       .then(
         () => {},
-        error => this.logger.error('Failed adding timed distribution job to queue', error.message, error.stack)
+        error => {
+          this.logger.error('Failed adding timed distribution job to queue', error.message, error.stack)
+          return
+        }
       )
   }
 }

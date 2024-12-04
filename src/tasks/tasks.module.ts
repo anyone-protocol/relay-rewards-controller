@@ -1,5 +1,5 @@
 import { BullModule } from '@nestjs/bullmq'
-import { Module } from '@nestjs/common'
+import { Logger, Module } from '@nestjs/common'
 import { TasksQueue } from './processors/tasks-queue'
 import { TasksService } from './tasks.service'
 import { DistributionQueue } from './processors/distribution-queue'
@@ -28,7 +28,7 @@ import { ClusterModule } from 'src/cluster/cluster.module'
       },
     ]),
   ],
-  providers: [TasksService, TasksQueue, DistributionQueue],
+  providers: [TasksService, TasksQueue, DistributionQueue, Logger],
   exports: [TasksService],
 })
 export class TasksModule {}
