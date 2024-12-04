@@ -81,6 +81,7 @@ job "relay-rewards-controller-live" {
         ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="false"
         PORT="${NOMAD_PORT_http}"
+        NO_COLOR="1"
       }
 
       volume_mount {
