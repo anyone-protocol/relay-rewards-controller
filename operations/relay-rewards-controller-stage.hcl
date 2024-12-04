@@ -19,7 +19,6 @@ job "relay-rewards-controller-stage" {
     }
 
     network {
-      mode = "bridge"
       port "http" {
         host_network = "wireguard"
       }
