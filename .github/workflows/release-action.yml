@@ -6,7 +6,7 @@ on:
     tags:
       - v*
 env:
-  IMAGE_NAME: relay-rewards
+  IMAGE_NAME: relay-rewards-controller
 
 jobs:
   push:
