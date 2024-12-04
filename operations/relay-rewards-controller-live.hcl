@@ -78,7 +78,7 @@ job "relay-rewards-controller-live" {
         BUNDLER_NODE="https://arweave.mainnet.irys.xyz"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
-        CPU_COUNT="1"
+        CPU_COUNT="2"
         DO_CLEAN="false"
       }
 
