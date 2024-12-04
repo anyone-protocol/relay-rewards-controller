@@ -4,7 +4,13 @@ job "relay-rewards-controller-live" {
 
   group "relay-rewards-controller-live-group" {
     
-    count = 1
+    count = 3
+
+    update {
+      max_parallel     = 1
+      min_healthy_time = "30s"
+      healthy_deadline = "10m"
+    }
 
     volume "geo-ip-db" {
       type      = "host"
@@ -83,8 +89,8 @@ job "relay-rewards-controller-live" {
       }
       
       resources {
-        cpu    = 4096
-        memory = 8192
+        cpu    = 2048
+        memory = 2048
       }
 
       service {

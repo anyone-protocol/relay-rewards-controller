@@ -4,7 +4,13 @@ job "relay-rewards-controller-stage" {
 
   group "relay-rewards-controller-stage-group" {
     
-    count = 1
+    count = 2
+
+    update {
+      max_parallel     = 1
+      min_healthy_time = "30s"
+      healthy_deadline = "10m"
+    }
 
     volume "geo-ip-db" {
       type      = "host"
@@ -79,8 +85,8 @@ job "relay-rewards-controller-stage" {
       }
       
       resources {
-        cpu    = 4096
-        memory = 8192
+        cpu    = 2048
+        memory = 2048
       }
 
       service {
