@@ -14,6 +14,7 @@ import * as geoip from 'geoip-lite'
 import { RelayInfo } from './interfaces/8_3/relay-info'
 import { DetailsResponse } from './interfaces/8_3/details-response'
 import { OperatorRegistryService } from 'src/operator-registry/operator-registry.service'
+import { TasksService } from 'src/tasks/tasks.service'
 
 @Injectable()
 export class DistributionService {
@@ -36,7 +37,8 @@ export class DistributionService {
     }>,
     private readonly relayRewardsService: RelayRewardsService,
     private readonly operatorRegistryService: OperatorRegistryService,
-    private readonly httpService: HttpService
+    private readonly httpService: HttpService,
+    private readonly tasksService: TasksService
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
     geoip.startWatchingDataUpdate()
@@ -215,7 +217,11 @@ export class DistributionService {
   }
 
   public async complete(stamp: number): Promise<boolean> {
-    return this.relayRewardsService.completeRound(stamp)
+    const result = await this.relayRewardsService.completeRound(stamp)
+    if (result) {
+      this.tasksService.updateDistribution(stamp, true, false)
+    }
+    return result
   }
 
   public async persistRound(stamp: number): Promise<boolean> {
@@ -303,7 +309,7 @@ export class DistributionService {
       const { id: summary_tx } = await this.bundler.upload(JSON.stringify(snapshot), { tags })
 
       this.logger.log(`Permanently stored distribution/summary [${stamp}]: ${summary_tx}`)
-
+      this.tasksService.updateDistribution(stamp, true, true)
       return true
     } catch (error) {
       this.logger.error('Exception in distribution service persisting round', error.stack)

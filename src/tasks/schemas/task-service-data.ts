@@ -5,8 +5,14 @@ export type TaskServiceDataDocument = HydratedDocument<TaskServiceData>
 
 @Schema()
 export class TaskServiceData {
+  @Prop({ type: Number, required: true })
+  startedAt: number
+
   @Prop({ type: Boolean, default: false })
-  isDistributing: boolean
+  complete: boolean
+
+  @Prop({ type: Boolean, default: false })
+  persisted: boolean
 }
 
 export const TaskServiceDataSchema = SchemaFactory.createForClass(TaskServiceData)

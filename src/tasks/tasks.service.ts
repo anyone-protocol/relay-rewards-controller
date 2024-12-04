@@ -4,6 +4,10 @@ import { Queue, FlowProducer, FlowJob } from 'bullmq'
 import { ScoreData } from '../distribution/schemas/score-data'
 import { ConfigService } from '@nestjs/config'
 import { ClusterService } from '../cluster/cluster.service'
+import { InjectModel } from '@nestjs/mongoose'
+import { TaskServiceData } from './schemas/task-service-data'
+import { Model } from 'mongoose'
+import { finished } from 'stream'
 
 @Injectable()
 export class TasksService implements OnApplicationBootstrap {
@@ -14,8 +18,7 @@ export class TasksService implements OnApplicationBootstrap {
   static readonly removeOnComplete = true
   static readonly removeOnFail = 8
 
-  private readonly minRoundLength = 1000 * 60 * 60
-  private lastRunAt = 0
+  private readonly minRoundLength = 1000 * 60 // * 60
 
   public static jobOpts = {
     removeOnComplete: TasksService.removeOnComplete,
@@ -66,7 +69,9 @@ export class TasksService implements OnApplicationBootstrap {
     @InjectQueue('distribution-queue')
     public distributionQueue: Queue,
     @InjectFlowProducer('distribution-flow')
-    public distributionFlow: FlowProducer
+    public distributionFlow: FlowProducer,
+    @InjectModel(TaskServiceData.name)
+    private readonly taskServiceDataModel: Model<TaskServiceData>
   ) {
     this.doClean = this.config.get<string>('DO_CLEAN', { infer: true })
     const minRound: number = this.config.get<number>('MIN_ROUND_LENGTH', {
@@ -82,30 +87,46 @@ export class TasksService implements OnApplicationBootstrap {
       if (this.doClean == 'true') {
         this.logger.log('Cleaning up jobs...')
         try {
+          await this.taskServiceDataModel.deleteMany({})
           await this.tasksQueue.obliterate({ force: true })
           await this.distributionQueue.obliterate({ force: true })
         } catch (error) {
           this.logger.error('Failed cleaning up queues', error.message, error.stack)
         }
       }
-      return this.queueDistribution()
+      
+      const lastData = await this.taskServiceDataModel.findOne().sort({ startedAt: -1 }).limit(1)
+      if (lastData) {
+        this.logger.log(`Bootstrapped Tasks service with ${lastData.startedAt}(${lastData.complete}, ${lastData.persisted})`)
+        return
+      } else {
+        this.logger.log(`Bootstrapped Tasks service with new distribution queue`)
+        return this.queueDistribution()
+      }
     } else {
       this.logger.debug('Not the one, skipping bootstrap of tasks service')
     }
   }
 
+  public async updateDistribution(stamp: number, complete: boolean, persisted: boolean): Promise<any> {
+    return this.taskServiceDataModel.updateOne({ stamp: stamp }, { complete: complete, persisted: persisted })
+  }
+
   public async queueDistribution(): Promise<void> {
+    const lastData = await this.taskServiceDataModel.findOne().sort({ startedAt: -1 }).limit(1)
+    const lastStart = lastData?lastData.startedAt : 0
+    
     const now = Date.now()
-    if (now - this.lastRunAt >= this.minRoundLength) {
+    if (now - lastStart >= this.minRoundLength) {
       try {
         await this.distributionQueue.add('start-distribution', now, TasksService.jobOpts)
-        this.lastRunAt = now
+        await this.taskServiceDataModel.create({ startedAt: now })
       } catch(error) {
         this.logger.error('Failed adding distribution job to queue', error.message, error.stack)
       }
     }
 
-    const timeOffset = this.minRoundLength - (now - this.lastRunAt)
+    const timeOffset = Math.max(0, this.minRoundLength - (now - lastStart))
     this.logger.log(`Queueing distribution for recheck in ... ${timeOffset/1000}s`)
     return this.tasksQueue
       .add(

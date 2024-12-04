@@ -4,7 +4,7 @@ job "relay-rewards-controller-live" {
 
   group "relay-rewards-controller-live-group" {
     
-    count = 3
+    count = 1
 
     update {
       max_parallel     = 1
