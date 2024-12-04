@@ -9,7 +9,7 @@ job "relay-rewards-controller-stage" {
     update {
       max_parallel     = 1
       min_healthy_time = "30s"
-      healthy_deadline = "10m"
+      healthy_deadline = "5m"
     }
 
     volume "geo-ip-db" {
