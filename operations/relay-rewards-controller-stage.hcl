@@ -127,7 +127,7 @@ job "relay-rewards-controller-stage" {
       }
 
       service {
-        name = "relay-rewards-controller-stage-redis"
+        name = "relay-rewards-controller-redis-stage"
         port = "redis"
         
         check {

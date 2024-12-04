@@ -131,7 +131,7 @@ job "relay-rewards-controller-live" {
       }
 
       service {
-        name = "relay-rewards-controller-live-redis"
+        name = "relay-rewards-controller-redis-live"
         port = "redis"
         
         check {
