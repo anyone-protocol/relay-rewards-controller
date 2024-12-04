@@ -48,7 +48,7 @@ job "relay-rewards-controller-stage" {
           BUNDLER_CONTROLLER_KEY="{{.Data.data.DISTRIBUTION_OPERATOR_KEY}}"
           
           JSON_RPC="{{.Data.data.JSON_RPC}}"
-          CONSUL_HTTP_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
+          CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
         OPERATOR_REGISTRY_PROCESS_ID="[[ consulKey "smart-contracts/stage/operator-registry-address" ]]"
         RELAY_REWARDS_PROCESS_ID="[[ consulKey "smart-contracts/stage/relay-rewards-address" ]]"
