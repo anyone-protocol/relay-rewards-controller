@@ -15,6 +15,11 @@ import { RelayInfo } from './interfaces/8_3/relay-info'
 import { DetailsResponse } from './interfaces/8_3/details-response'
 import { OperatorRegistryService } from 'src/operator-registry/operator-registry.service'
 import { TasksService } from 'src/tasks/tasks.service'
+import { InjectModel } from '@nestjs/mongoose'
+import { Model } from 'mongoose'
+import { UptimeTicks } from './schemas/uptime-ticks'
+import { differenceInDays, startOfDay, subDays } from 'date-fns'
+import { UptimeStreak } from './schemas/uptime-streak'
 
 @Injectable()
 export class DistributionService {
@@ -38,7 +43,11 @@ export class DistributionService {
     private readonly relayRewardsService: RelayRewardsService,
     private readonly operatorRegistryService: OperatorRegistryService,
     private readonly httpService: HttpService,
-    private readonly tasksService: TasksService
+    private readonly tasksService: TasksService,
+    @InjectModel(UptimeTicks.name)
+    private readonly uptimeTicksModel: Model<UptimeTicks>,
+    @InjectModel(UptimeStreak.name)
+    private readonly uptimeStreakModel: Model<UptimeStreak>
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
     geoip.startWatchingDataUpdate()
@@ -170,8 +179,80 @@ export class DistributionService {
     return { sizes, cells }
   }
 
-  private async fetchUptimeStreaks(fingerprints: string[]): Promise<{ [key: string]: number }> {
-    return {}
+  private async fetchUptimeStreaks(stamp: number, fingerprints: { [key: string]: string }): Promise<{ [key: string]: number }> {
+    const startOfToday = startOfDay(new Date(stamp))
+    
+    const trackedStreaks: UptimeStreak[] = await this.uptimeStreakModel.find({ last: startOfToday })
+    const streaks = {}
+    trackedStreaks.forEach((streak) => {
+      streaks[streak.fingerprint] = differenceInDays(streak.last, streak.start)
+    })
+
+    return streaks
+  }
+
+  private async trackUptime(stamp: number, fingerprints: string[]): Promise<void> {
+    const maxDailyTicks = Math.ceil((1000 * 60 * 60 * 24) / this.tasksService.minRoundLength)
+    
+    const updates = fingerprints.map(fingerprint => ({
+      insertOne: {
+        document: { fingerprint, stamp }
+      }
+    }))
+
+    const batchSize = 1000
+    for (let i = 0; i < updates.length; i += batchSize) {
+      const batch = updates.slice(i, i + 1000)
+      await this.uptimeTicksModel.bulkWrite(batch)
+      this.logger.log(`Processed uptime ticks batch ${i / batchSize + 1}`)
+    }
+    
+    const timestamp = new Date(stamp)
+    const startOfToday = startOfDay(timestamp)
+    const yesterday = subDays(timestamp, 1)
+    const startOfYesterday = startOfDay(yesterday)
+
+    
+    const requiredTicksPerDay = Math.ceil(maxDailyTicks * 0.6)
+    const scope: { _id: string, count: number}[] = await this.uptimeTicksModel.aggregate([
+      {
+        $match: {
+          stamp: {
+            $gte: startOfYesterday,
+            $lt: startOfToday
+          }
+        }
+      },
+      {  
+        $group: {
+          _id: '$fingerprint',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $match: {
+          count: { $gte: requiredTicksPerDay }
+        }
+      },
+    ])
+    
+    const streaks = scope.map((value) => ({ 
+      updateOne: {
+        filter: { fingerprint: value._id },
+        update: { $min: { start: startOfYesterday }, $set: { last: startOfToday } },
+        upsert: true
+      }
+    }))
+
+    for (let i = 0; i < streaks.length; i += batchSize) {
+      const batch = streaks.slice(i, i + 1000)
+      await this.uptimeStreakModel.bulkWrite(batch)
+      this.logger.log(`Processed uptime streaks batch ${i / batchSize + 1}`)
+    }
+
+    this.uptimeTicksModel.deleteMany({ $lt: { stamp: startOfToday }})
+    
+    return
   }
 
   public async getCurrentScores(stamp: number): Promise<ScoreData[]> {
@@ -179,32 +260,38 @@ export class DistributionService {
     const operatorRegistryState = await this.operatorRegistryService.getOperatorRegistryState()
     const verificationData = operatorRegistryState.VerifiedFingerprintsToOperatorAddresses
     const hardwareData = operatorRegistryState.VerifiedHardwareFingerprints
-    const uptimeStreaks = await this.fetchUptimeStreaks(Object.keys(verificationData))
-
+    const uptimeStreaks = await this.fetchUptimeStreaks(stamp, verificationData)
+    
     const { sizes, cells } = this.parseLocations(relaysData, verificationData)
 
     const scores: ScoreData[] = []
+    const uptimeTicks: string[] = []
 
     relaysData.forEach(relay => {
-      const verifiedAddress = verificationData[relay.fingerprint]
-      if (verifiedAddress && verifiedAddress.length > 0) {
-        const locationCell = cells[relay.fingerprint] ?? ''
-        const locationSize = sizes[locationCell] ?? 0
-        const score: ScoreData = {
-          Fingerprint: relay.fingerprint,
-          Address: verifiedAddress,
-          Network: relay.consensus_weight,
-          FamilySize: (relay.effective_family?.length ?? 1) - 1,
-          IsHardware: hardwareData[relay.fingerprint] ?? false,
-          LocationSize: locationSize - 1,
-          UptimeStreak: uptimeStreaks[relay.fingerprint] ?? 0,
-          ExitBonus: relay.flags?.includes('Exit') ?? false,
+      if (relay.running && relay.consensus_weight > 0) {
+        const verifiedAddress = verificationData[relay.fingerprint]
+        if (verifiedAddress && verifiedAddress.length > 0) {
+          const locationCell = cells[relay.fingerprint] ?? ''
+          const locationSize = sizes[locationCell] ?? 0
+          const score: ScoreData = {
+            Fingerprint: relay.fingerprint,
+            Address: verifiedAddress,
+            Network: relay.consensus_weight,
+            FamilySize: (relay.effective_family?.length ?? 1) - 1,
+            IsHardware: hardwareData[relay.fingerprint] ?? false,
+            LocationSize: locationSize - 1,
+            UptimeStreak: uptimeStreaks[relay.fingerprint] ?? 0,
+            ExitBonus: relay.flags?.includes('Exit') ?? false,
+          }
+          scores.push(score)
+          uptimeTicks.push(relay.fingerprint)
+        } else {
+          // this.logger.debug(`Found unverified relay in network details ${relay.fingerprint}`)
         }
-        scores.push(score)
-      } else {
-        // this.logger.debug(`Found unverified relay in network details ${relay.fingerprint}`)
       }
     })
+
+    await this.trackUptime(stamp, uptimeTicks)
 
     return scores
   }

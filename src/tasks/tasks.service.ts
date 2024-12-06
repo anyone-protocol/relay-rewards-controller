@@ -17,7 +17,7 @@ export class TasksService implements OnApplicationBootstrap {
   static readonly removeOnComplete = true
   static readonly removeOnFail = 8
 
-  private minRoundLength = 1000 * 60
+  public minRoundLength = 1000 * 60
 
   public static jobOpts = {
     removeOnComplete: TasksService.removeOnComplete,
