@@ -352,7 +352,7 @@ export class DistributionService {
 
         { name: 'Time-Elapsed', value: snapshot.Period.toString() },
         { name: 'Distribution-Rate', value: snapshot.Configuration.TokensPerSecond.toString() },
-        { name: 'Distributed-Tokens', value: snapshot.Summary.Total.toString() },
+        { name: 'Distributed-Tokens', value: snapshot.Summary.Rewards.Total.toString() },
 
         {
           name: 'Hardware-Bonus-Enabled',
@@ -360,7 +360,7 @@ export class DistributionService {
         },
         {
           name: 'Hardware-Bonus-Distributed-Tokens',
-          value: snapshot.Summary.Hardware.toString(),
+          value: snapshot.Summary.Rewards.Hardware.toString(),
         },
         {
           name: 'Uptime-Bonus-Enabled',
@@ -368,7 +368,7 @@ export class DistributionService {
         },
         {
           name: 'Uptime-Bonus-Distributed-Tokens',
-          value: snapshot.Summary.Uptime.toString(),
+          value: snapshot.Summary.Rewards.Uptime.toString(),
         },
         {
           name: 'Exit-Bonus-Enabled',
@@ -376,7 +376,7 @@ export class DistributionService {
         },
         {
           name: 'Exit-Bonus-Distributed-Tokens',
-          value: snapshot.Summary.ExitBonus.toString(),
+          value: snapshot.Summary.Rewards.ExitBonus.toString(),
         },
 
         {
@@ -389,7 +389,7 @@ export class DistributionService {
         },
         {
           name: 'Total-Distributed-Tokens',
-          value: snapshot.Summary.Total.toString(),
+          value: snapshot.Summary.Rewards.Total.toString(),
         },
       ]
 
