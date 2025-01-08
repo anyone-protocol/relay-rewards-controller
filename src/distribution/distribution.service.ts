@@ -399,7 +399,7 @@ export class DistributionService {
       this.tasksService.updateDistribution(stamp, true, true)
       return true
     } catch (error) {
-      this.logger.error('Exception in distribution service persisting round', error.stack)
+      this.logger.error(`Exception in distribution service persisting round: ${error.message}`, error.stack)
     }
 
     return false

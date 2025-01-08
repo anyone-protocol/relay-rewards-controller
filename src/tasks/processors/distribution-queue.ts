@@ -68,7 +68,7 @@ export class DistributionQueue extends WorkerHost {
         return true
       },
       error => {
-        this.logger.error('Exception while starting distribution', error.message, error.stack)
+        this.logger.error(`Exception while starting distribution: ${error.message}`, error.stack)
         return false
       }
     )
@@ -88,7 +88,7 @@ export class DistributionQueue extends WorkerHost {
             scored: job.data.scores.map(value => value.Fingerprint),
           }),
           error => {
-            this.logger.error('Exception while adding scores', error.message, error.stack)
+            this.logger.error(`Exception while adding scores: ${error.message}`, error.stack)
             return { result: false, stamp: 0, scored: [] }
           }
         )
@@ -132,7 +132,7 @@ export class DistributionQueue extends WorkerHost {
         }
       },
       error => {
-        this.logger.error('Exception while completing distribution', error.message, error.stack)
+        this.logger.error(`Exception while completing distribution: ${error.message}`, error.stack)
         return false
       }
     )

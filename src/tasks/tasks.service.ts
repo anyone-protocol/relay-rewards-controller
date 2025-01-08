@@ -90,7 +90,7 @@ export class TasksService implements OnApplicationBootstrap {
           await this.tasksQueue.obliterate({ force: true })
           await this.distributionQueue.obliterate({ force: true })
         } catch (error) {
-          this.logger.error('Failed cleaning up queues', error.message, error.stack)
+          this.logger.error(`Failed cleaning up queues: ${error.message}`, error.stack)
         }
       }
 
@@ -123,7 +123,7 @@ export class TasksService implements OnApplicationBootstrap {
         await this.distributionQueue.add('start-distribution', now, TasksService.jobOpts)
         await this.taskServiceDataModel.create({ startedAt: now })
       } catch (error) {
-        this.logger.error('Failed adding distribution job to queue', error.message, error.stack)
+        this.logger.error(`Failed adding distribution job to queue: ${error.message}`, error.stack)
       }
     }
 
@@ -142,7 +142,7 @@ export class TasksService implements OnApplicationBootstrap {
       .then(
         () => {},
         error => {
-          this.logger.error('Failed adding timed distribution job to queue', error.message, error.stack)
+          this.logger.error(`Failed adding timed distribution job to queue: ${error.message}`, error.stack)
           return
         }
       )

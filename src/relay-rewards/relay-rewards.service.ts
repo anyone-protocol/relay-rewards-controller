@@ -72,7 +72,7 @@ export class RelayRewardsService {
         this.logger.error(`Failed fetching Last-Snapshot: ${result.Error}`)
       }
     } catch (error) {
-      this.logger.error(`Exception in getLastSnapshot`, error.stack)
+      this.logger.error(`Exception in getLastSnapshot: ${error.message}`, error.stack)
     }
   }
 
@@ -99,7 +99,7 @@ export class RelayRewardsService {
           this.logger.error(`Failed storing ${Object.keys(scores).length} scores for ${stamp}: ${result.Error}`)
         }
       } catch (error) {
-        this.logger.error(`Exception in addScores`, error.stack)
+        this.logger.error(`Exception in addScores: ${error.message}`, error.stack)
       }
     } else {
       this.logger.warn(`NOT LIVE: Not adding ${scores.length} scores to distribution contract `)
@@ -133,7 +133,7 @@ export class RelayRewardsService {
         this.logger.error(`Failed Complete-Round for ${stamp}: ${result.Error}`)
       }
     } catch (error) {
-      this.logger.error('Exception in distribute', error.stack)
+      this.logger.error('Exception in distribute: ${error.message}', error.stack)
     }
     return false
   }

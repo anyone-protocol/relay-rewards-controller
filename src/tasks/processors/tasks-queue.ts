@@ -23,7 +23,7 @@ export class TasksQueue extends WorkerHost {
         try {
           return this.tasks.queueDistribution()
         } catch (error) {
-          this.logger.error('Exception while starting distribution', error.stack)
+          this.logger.error(`Exception while starting distribution: ${error.message}`, error.stack)
         }
 
         break
