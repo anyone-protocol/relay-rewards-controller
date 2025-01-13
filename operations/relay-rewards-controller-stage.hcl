@@ -68,7 +68,7 @@ job "relay-rewards-controller-stage" {
       }
 
       env {
-        BUMP="redeploy-relay-rewards-contract"
+        BUMP="redeploy-rewards-3"
         IS_LIVE="true"
         VERSION="[[.commit_sha]]"
         BUNDLER_NODE="https://arweave.mainnet.irys.xyz"
