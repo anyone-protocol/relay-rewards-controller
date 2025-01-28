@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ScoreData } from './schemas/score-data'
 import { ConfigService } from '@nestjs/config'
-import Bundlr from '@bundlr-network/client'
 import _ from 'lodash'
 import { RelayRewardsService } from 'src/relay-rewards/relay-rewards.service'
 import { AddScoresData } from './dto/add-scores'
@@ -20,6 +19,7 @@ import { Model } from 'mongoose'
 import { UptimeTicks } from './schemas/uptime-ticks'
 import { differenceInDays, startOfDay, subDays } from 'date-fns'
 import { UptimeStreak } from './schemas/uptime-streak'
+import { BundlingService } from '../bundling/bundling.service'
 
 @Injectable()
 export class DistributionService {
@@ -28,8 +28,6 @@ export class DistributionService {
   private isLive?: string
 
   private static readonly scoresPerBatch = 420
-
-  private bundler
 
   constructor(
     private readonly config: ConfigService<{
@@ -47,37 +45,15 @@ export class DistributionService {
     @InjectModel(UptimeTicks.name)
     private readonly uptimeTicksModel: Model<UptimeTicks>,
     @InjectModel(UptimeStreak.name)
-    private readonly uptimeStreakModel: Model<UptimeStreak>
+    private readonly uptimeStreakModel: Model<UptimeStreak>,
+    private readonly bundlingService: BundlingService
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
     geoip.startWatchingDataUpdate()
 
-    this.logger.log(`Initializing distribution service (IS_LIVE: ${this.isLive})`)
-
-    const bundlerKey = this.config.get<string>('BUNDLER_CONTROLLER_KEY', {
-      infer: true,
-    })
-    if (bundlerKey !== undefined) {
-      this.bundler = (() => {
-        const node = config.get<string>('BUNDLER_NODE', {
-          infer: true,
-        })
-        const network = config.get<string>('BUNDLER_NETWORK', {
-          infer: true,
-        })
-        if (node !== undefined && network !== undefined) {
-          return new Bundlr(node, network, bundlerKey)
-        } else {
-          return undefined
-        }
-      })()
-
-      if (this.bundler !== undefined) {
-        this.logger.log(`Initialized bundler for address: ${this.bundler.address}`)
-      } else {
-        this.logger.error('Failed to initialize bundler!')
-      }
-    } else this.logger.error("Missing key of the bundler's controller.")
+    this.logger.log(
+      `Initializing distribution service (IS_LIVE: ${this.isLive})`
+    )
   }
 
   public groupScoreJobs(data: ScoreData[]): ScoreData[][] {
@@ -326,11 +302,6 @@ export class DistributionService {
       return false
     }
     try {
-      if (!this.bundler) {
-        this.logger.error('Bundler not initialized to persist distribution/summary')
-        return false
-      }
-
       if (this.isLive !== 'true') {
         this.logger.warn(`NOT LIVE: Not storing distribution/summary [${snapshot.Timestamp}]`)
 
@@ -393,7 +364,10 @@ export class DistributionService {
         },
       ]
 
-      const { id: summary_tx } = await this.bundler.upload(JSON.stringify(snapshot), { tags })
+      const { id: summary_tx } = await this.bundlingService.upload(
+        JSON.stringify(snapshot),
+        { tags }
+      )
 
       this.logger.log(`Permanently stored distribution/summary [${stamp}]: ${summary_tx}`)
       this.tasksService.updateDistribution(stamp, true, true)
