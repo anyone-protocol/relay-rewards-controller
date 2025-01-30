@@ -8,9 +8,10 @@ import { TasksModule } from 'src/tasks/tasks.module'
 import { MongooseModule } from '@nestjs/mongoose'
 import { UptimeTicks as UptimeTicks, UptimeTicksSchema as UptimeTicksSchema } from './schemas/uptime-ticks'
 import { UptimeStreak, UptimeStreakSchema } from './schemas/uptime-streak'
+import { BundlingModule } from 'src/bundling/bundling.module'
 
 @Module({
-  imports: [ConfigModule, RelayRewardsModule, OperatorRegistryModule, HttpModule, forwardRef(() => TasksModule),
+  imports: [ConfigModule, RelayRewardsModule, OperatorRegistryModule, HttpModule, BundlingModule, forwardRef(() => TasksModule),
     
     MongooseModule.forFeature([
       {
