@@ -16,13 +16,10 @@ export class OperatorRegistryService {
   private readonly operatorRegistryProcessId: string
   private readonly operatorRegistryControllerKey: string
 
-  private signer!: AosSigningFunction
-
   constructor(
     private readonly config: ConfigService<{
       IS_LIVE: string
       OPERATOR_REGISTRY_PROCESS_ID: string
-      OPERATOR_REGISTRY_CONTROLLER_KEY: string
     }>
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
@@ -43,13 +40,6 @@ export class OperatorRegistryService {
     if (operatorRegistryKey != undefined) {
       this.operatorRegistryControllerKey = operatorRegistryKey
     } else this.logger.error('Missing relay rewards controller key')
-  }
-
-  async onApplicationBootstrap(): Promise<void> {
-    this.signer = await createEthereumDataItemSigner(new EthereumSigner(this.operatorRegistryControllerKey))
-    const wallet = new Wallet(this.operatorRegistryControllerKey)
-    const address = await wallet.getAddress()
-    this.logger.log(`Bootstrapped with signer address ${address}`)
   }
 
   public async getOperatorRegistryState(): Promise<OperatorRegistryState> {
