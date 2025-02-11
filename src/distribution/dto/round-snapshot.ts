@@ -6,16 +6,16 @@ export default interface RoundSnapshot {
   Period: number // seconds
   Summary: {
     Ratings: {
-      ExitBonus: number
-      Uptime: number
-      Network: number
+      ExitBonus: string
+      Uptime: string
+      Network: string
     }
     Rewards: {
-      Uptime: number
-      Network: number
-      Hardware: number
-      ExitBonus: number
-      Total: number
+      Uptime: string
+      Network: string
+      Hardware: string
+      ExitBonus: string
+      Total: string
     }
   }
   Configuration: Configuration

@@ -323,7 +323,7 @@ export class DistributionService {
 
         { name: 'Time-Elapsed', value: snapshot.Period.toString() },
         { name: 'Distribution-Rate', value: snapshot.Configuration.TokensPerSecond.toString() },
-        { name: 'Distributed-Tokens', value: snapshot.Summary.Rewards.Total.toString() },
+        { name: 'Distributed-Tokens', value: snapshot.Summary.Rewards.Total },
 
         {
           name: 'Hardware-Bonus-Enabled',
@@ -360,7 +360,7 @@ export class DistributionService {
         },
         {
           name: 'Total-Distributed-Tokens',
-          value: snapshot.Summary.Rewards.Total.toString(),
+          value: snapshot.Summary.Rewards.Total,
         },
       ]
 

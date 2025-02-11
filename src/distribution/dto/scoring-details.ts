@@ -11,12 +11,12 @@ export default interface ScoringDetails {
   Variables: { FamilyMultiplier: number; LocationMultiplier: number }
   Rating: { Network: number; Uptime: number; ExitBonus: number }
   Reward: {
-    Total: number
-    OperatorTotal: number
-    DelegateTotal: number
-    Network: number
-    Hardware: number
-    Uptime: number
-    ExitBonus: number
+    Total: string
+    OperatorTotal: string
+    DelegateTotal: string
+    Network: string
+    Hardware: string
+    Uptime: string
+    ExitBonus: string
   }
 }
