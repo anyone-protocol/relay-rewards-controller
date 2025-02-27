@@ -140,7 +140,10 @@ export class TasksService implements OnApplicationBootstrap {
         }
       )
       .then(
-        () => {},
+        () => {
+          this.logger.log('[alarm=enqueued-distribution] Enqueued timed distribution job')
+          return
+        },
         error => {
           this.logger.error(`Failed adding timed distribution job to queue: ${error.message}`, error.stack)
           return

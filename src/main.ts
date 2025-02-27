@@ -11,7 +11,8 @@ export const logz = createLogger({
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
         winston.format.printf(({ level, message, context, timestamp, stack }) => {
-          return `${timestamp}|${level}|${context}: ${message}${stack ? '\n' + stack : ''}`;
+          const _stack = Array.isArray(stack) && stack[0] ? '\n'+stack.join('\n') : '';
+          return `${timestamp}|${level}|${context}: ${message}${_stack}`;
         }),
       ),
       handleExceptions: true

@@ -48,6 +48,11 @@ export class DistributionQueue extends WorkerHost {
     this.logger.debug(`Finished ${job.name} [${job.id}]`)
   }
 
+  @OnWorkerEvent('failed')
+  onFailed(job: Job<any, any, string>) {
+    this.logger.error(`[alarm=failed-job-${job.name}] Failed ${job.name} [${job.id}]: ${job.failedReason}`)
+  }
+
   async startDistributionHandler(job: Job<number, boolean, string>): Promise<boolean> {
     return this.distribution.getCurrentScores(job.data).then(
       scores => {
