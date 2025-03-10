@@ -32,7 +32,7 @@
     "@nestjs/core": "^10.0.0",
     "@nestjs/mongoose": "^10.1.0",
     "@nestjs/platform-express": "^10.0.0",
-    "@permaweb/aoconnect": "^0.0.59",
+    "@permaweb/aoconnect": "0.0.59",
     "@types/consul": "^0.40.3",
     "arweave": "^1.15.5",
     "base64url": "^3.0.1",
