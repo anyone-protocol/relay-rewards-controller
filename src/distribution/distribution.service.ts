@@ -162,7 +162,7 @@ export class DistributionService {
     const streaks = {}
     trackedStreaks.forEach((streak) => {
       if (streak.last > 0) {
-        streaks[streak._id] = differenceInDays(streak.last, streak.start)
+        streaks[streak._id] = differenceInDays(new Date(streak.last), new Date(streak.start))
       } else {
         streaks[streak._id] = 0
       }
