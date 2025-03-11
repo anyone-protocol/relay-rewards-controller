@@ -223,7 +223,7 @@ export class DistributionService {
         filter: { _id: value._id },
         update: {
           $min: { start: startOfYesterday.getTime() }, $max: { last: startOfToday.getTime() }, 
-          $setOnInsert: {_id: value._id, start: startOfYesterday.getTime(), last: startOfToday.getTime() } 
+          $setOnInsert: { _id: value._id } 
         },
         upsert: true
       }
