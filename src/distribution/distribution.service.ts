@@ -216,24 +216,16 @@ export class DistributionService {
       },
     ]
     const scope: { _id: string, count: number}[] = await this.uptimeTicksModel.aggregate(aggregateQuery)
-    this.logger.log(`Tracking uptime: aggregate size: ${scope.length} for query ${JSON.stringify(aggregateQuery)}`)
-
-    const initialData = scope.map((value) => ({
-      _id: value._id,
-      start: Number.MAX_SAFE_INTEGER, 
-      last: 0
-    }))
-
-    for (let i = 0; i < initialData.length; i += batchSize) {
-      const batch = initialData.slice(i, i + batchSize)
-      await this.uptimeStreakModel.insertMany(batch, { ordered: false })
-      this.logger.log(`Tracking uptime (phase 2/3): initialized uptime streaks batch ${i / batchSize + 1}`)
-    }
+    this.logger.log(`Tracking uptime (phase 2/3): aggregate size: ${scope.length} for query ${JSON.stringify(aggregateQuery)}`)
     
     const streaks = scope.map((value) => ({ 
       updateOne: {
         filter: { _id: value._id },
-        update: { $min: { start: startOfYesterday.getTime() }, $max: { last: startOfToday.getTime() } }
+        update: {
+          $min: { start: startOfYesterday.getTime() }, $max: { last: startOfToday.getTime() }, 
+          $setOnInsert: {_id: value._id, start: startOfYesterday.getTime(), last: startOfToday.getTime() } 
+        },
+        upsert: true
       }
     }))
 
