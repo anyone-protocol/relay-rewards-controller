@@ -365,7 +365,7 @@ export class DistributionService {
       ]
 
       const { id: summary_tx } = await this.bundlingService.upload(
-        JSON.stringify(snapshot),
+        Buffer.from(JSON.stringify(snapshot)),
         { tags }
       )
 
