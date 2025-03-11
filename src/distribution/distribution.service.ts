@@ -158,7 +158,7 @@ export class DistributionService {
   private async fetchUptimeStreaks(stamp: number, fingerprints: { [key: string]: string }): Promise<{ [key: string]: number }> {
     const startOfToday = startOfDay(new Date(stamp))
     
-    const trackedStreaks: UptimeStreak[] = await this.uptimeStreakModel.find({ last: startOfToday })
+    const trackedStreaks: UptimeStreak[] = await this.uptimeStreakModel.find({ last: startOfToday.getTime() })
     const streaks = {}
     trackedStreaks.forEach((streak) => {
       if (streak.last > 0) {
@@ -194,12 +194,12 @@ export class DistributionService {
     const startOfYesterday = startOfDay(yesterday)
 
     const requiredTicksPerDay = Math.ceil(maxDailyTicks * 0.6)
-    const scope: { _id: string, count: number}[] = await this.uptimeTicksModel.aggregate([
+    const aggregateQuery = [
       {
         $match: {
           stamp: {
-            $gte: startOfYesterday,
-            $lt: startOfToday
+            $gte: startOfYesterday.getTime(),
+            $lt: startOfToday.getTime()
           }
         }
       },
@@ -214,15 +214,18 @@ export class DistributionService {
           count: { $gte: requiredTicksPerDay }
         }
       },
-    ])
+    ]
+    const scope: { _id: string, count: number}[] = await this.uptimeTicksModel.aggregate(aggregateQuery)
+    this.logger.log(`Tracking uptime: aggregate size: ${scope.length} for query ${JSON.stringify(aggregateQuery)}`)
 
     const initialData = scope.map((value) => ({
       _id: value._id,
       start: Number.MAX_SAFE_INTEGER, 
       last: 0
     }))
+
     for (let i = 0; i < initialData.length; i += batchSize) {
-      const batch = initialData.slice(i, i + 1000)
+      const batch = initialData.slice(i, i + batchSize)
       await this.uptimeStreakModel.insertMany(batch, { ordered: false })
       this.logger.log(`Tracking uptime (phase 2/3): initialized uptime streaks batch ${i / batchSize + 1}`)
     }
@@ -230,17 +233,17 @@ export class DistributionService {
     const streaks = scope.map((value) => ({ 
       updateOne: {
         filter: { _id: value._id },
-        update: { $min: { start: startOfYesterday }, $max: { last: startOfToday } }
+        update: { $min: { start: startOfYesterday.getTime() }, $max: { last: startOfToday.getTime() } }
       }
     }))
 
     for (let i = 0; i < streaks.length; i += batchSize) {
-      const batch = streaks.slice(i, i + 1000)
+      const batch = streaks.slice(i, i + batchSize)
       await this.uptimeStreakModel.bulkWrite(batch)
       this.logger.log(`Tracking uptime (phase 3/3): stored uptime streaks batch ${i / batchSize + 1}`)
     }
 
-    this.uptimeTicksModel.deleteMany({ $lt: { stamp: startOfToday }})
+    this.uptimeTicksModel.deleteMany({ $lt: { stamp: startOfToday.getTime() }})
     
     return
   }
