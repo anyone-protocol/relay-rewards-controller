@@ -25,6 +25,7 @@ job "relay-rewards-controller-stage" {
     }
 
     task "relay-rewards-controller-stage-service" {
+      kill_timeout = "30s"
       driver = "docker"
       config {
         network_mode = "host"
