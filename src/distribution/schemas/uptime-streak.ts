@@ -6,7 +6,7 @@ export type UptimeStreakDocument = HydratedDocument<UptimeStreak>
 @Schema()
 export class UptimeStreak {
   @Prop({ type: String, required: true })
-  fingerprint: string
+  _id: string
 
   @Prop({ type: Number, required: true })
   start: number

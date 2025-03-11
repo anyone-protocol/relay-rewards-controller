@@ -74,7 +74,7 @@ job "relay-rewards-controller-stage" {
         BUNDLER_NODE="https://ar.anyone.tech/bundler"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
-        CPU_COUNT="2"
+        CPU_COUNT="1"
         CONSUL_HOST="${NOMAD_IP_http}"
         CONSUL_PORT="8500"
         SERVICE_NAME="relay-rewards-controller-stage"

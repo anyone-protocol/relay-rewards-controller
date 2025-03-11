@@ -161,7 +161,7 @@ export class DistributionService {
     const trackedStreaks: UptimeStreak[] = await this.uptimeStreakModel.find({ last: startOfToday })
     const streaks = {}
     trackedStreaks.forEach((streak) => {
-      streaks[streak.fingerprint] = differenceInDays(streak.last, streak.start)
+      streaks[streak._id] = differenceInDays(streak.last, streak.start)
     })
 
     return streaks
@@ -214,8 +214,8 @@ export class DistributionService {
     
     const streaks = scope.map((value) => ({ 
       updateOne: {
-        filter: { fingerprint: value._id },
-        update: { $min: { start: startOfYesterday }, $set: { last: startOfToday } },
+        filter: { _id: value._id },
+        update: { $set: { _id: value._id, $min: { start: startOfYesterday }, $max: { last: startOfToday } } },
         upsert: true
       }
     }))
