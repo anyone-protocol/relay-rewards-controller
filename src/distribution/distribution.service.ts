@@ -243,7 +243,7 @@ export class DistributionService {
       this.logger.log(`Tracking uptime (phase 3/3): stored uptime streaks batch ${i / batchSize + 1}`)
     }
 
-    this.uptimeTicksModel.deleteMany({ $lt: { stamp: startOfToday.getTime() }})
+    this.uptimeTicksModel.deleteMany({ stamp: { $lt: startOfToday.getTime() }})
     
     return
   }
