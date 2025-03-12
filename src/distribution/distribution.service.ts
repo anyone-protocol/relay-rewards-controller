@@ -192,6 +192,9 @@ export class DistributionService {
     const startOfToday = startOfDay(timestamp)
     const yesterday = subDays(timestamp, 1)
     const startOfYesterday = startOfDay(yesterday)
+    
+    await this.uptimeStreakModel.deleteMany({ last: { $lt: startOfYesterday.getTime() }})
+    await this.uptimeTicksModel.deleteMany({ stamp: { $lt: startOfYesterday.getTime() }})
 
     const requiredTicksPerDay = Math.ceil(maxDailyTicks * 0.6)
     const aggregateQuery = [
@@ -234,9 +237,6 @@ export class DistributionService {
       await this.uptimeStreakModel.bulkWrite(batch)
       this.logger.log(`Tracking uptime (phase 3/3): stored uptime streaks batch ${i / batchSize + 1}`)
     }
-
-    await this.uptimeTicksModel.deleteMany({ stamp: { $lt: startOfYesterday.getTime() }})
-    await this.uptimeStreakModel.deleteMany({ last: { $lt: startOfYesterday.getTime() }})
     
     return
   }
