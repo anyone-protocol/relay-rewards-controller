@@ -236,6 +236,7 @@ export class DistributionService {
     }
 
     await this.uptimeTicksModel.deleteMany({ stamp: { $lt: startOfYesterday.getTime() }})
+    await this.uptimeStreakModel.deleteMany({ last: { $lt: startOfYesterday.getTime() }})
     
     return
   }
