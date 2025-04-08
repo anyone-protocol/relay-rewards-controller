@@ -83,7 +83,7 @@ job "relay-rewards-controller-stage" {
         DO_CLEAN="false"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
-        CU_URL="https://cu.ardrive.io"
+        CU_URL="https://cu.anyone.permaweb.services"
       }
 
       volume_mount {
