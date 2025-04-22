@@ -65,6 +65,9 @@ export class RelayRewardsService {
       })
 
       if (!result.Error) {
+        if (result.Messages.length === 0) {
+          this.logger.warn('No messages found for Last-Snapshot', result)
+        }
         const data: RoundSnapshot = JSON.parse(result.Messages[0].Data)
 
         return data
