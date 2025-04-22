@@ -80,7 +80,7 @@ export class ClusterService implements OnApplicationBootstrap, BeforeApplication
 
   async beforeApplicationShutdown(): Promise<void> {
     if (this.consul && this.isLocalLeader() && this.sessionId) {
-      this.logger.log(`Releasing cluster session`)
+      this.logger.log(`Releasing relay-rewards cluster session`)
       await this.consul.session.destroy(this.sessionId)
     }
   }
