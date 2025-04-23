@@ -44,7 +44,6 @@ job "relay-rewards-controller-live" {
           BUNDLER_NETWORK="{{.Data.data.IRYS_NETWORK}}"
           BUNDLER_CONTROLLER_KEY="{{.Data.data.DISTRIBUTION_OPERATOR_KEY}}"
 
-          JSON_RPC="{{.Data.data.JSON_RPC}}"
           CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
         OPERATOR_REGISTRY_PROCESS_ID="[[ consulKey "smart-contracts/live/operator-registry-address" ]]"
