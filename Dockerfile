@@ -23,4 +23,6 @@ FROM node:20.14-alpine As production
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 
+ENV NODE_OPTIONS=--max-old-space-size=2048
+
 CMD [ "node", "dist/main.js" ]

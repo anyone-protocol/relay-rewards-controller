@@ -67,7 +67,7 @@ export class BundlingService {
   }
 
   async upload(
-    data: string | Buffer,
+    data: Buffer,
     dataItemOpts: { tags?: { name: string, value: string }[] }
   ) {
     const signed = await this.bundler.signer.signDataItem({

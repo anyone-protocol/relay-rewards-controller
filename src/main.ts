@@ -27,6 +27,14 @@ async function bootstrap() {
     }),
   })
 
+  const signals = ['SIGTERM', 'SIGINT'];
+  signals.forEach(signal => {
+    process.on(signal, () => {
+      console.log(`Received ${signal}, starting graceful shutdown...`);
+      app.close();
+    })
+  })
+
   const port = process.env.PORT || 3000
   logz.info(`Listening on ${port}`)
   

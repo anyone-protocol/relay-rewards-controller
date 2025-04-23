@@ -25,6 +25,7 @@ job "relay-rewards-controller-live" {
     }
 
     task "relay-rewards-controller-live-service" {
+      kill_timeout = "30s"
       driver = "docker"
       config {
         network_mode = "host"
@@ -73,7 +74,7 @@ job "relay-rewards-controller-live" {
         BUNDLER_NODE="https://ar.anyone.tech/bundler"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
-        CPU_COUNT="3"
+        CPU_COUNT="1"
         CONSUL_HOST="${NOMAD_IP_http}"
         CONSUL_PORT="8500"
         SERVICE_NAME="relay-rewards-controller-live"
@@ -81,6 +82,7 @@ job "relay-rewards-controller-live" {
         DO_CLEAN="false"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
+        CU_URL="https://cu.anyone.permaweb.services"
       }
 
       volume_mount {
