@@ -1,6 +1,7 @@
 job "relay-rewards-controller-redis-live" {
   datacenters = ["ator-fin"]
   type = "service"
+  namespace = "live-protocol"
   
   group "relay-rewards-controller-redis-live-group" {
     count = 1

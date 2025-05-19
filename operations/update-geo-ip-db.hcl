@@ -1,9 +1,10 @@
 job "update-geo-ip-db" {
   datacenters = ["ator-fin"]
   type = "batch"
+  namespace = "live-services"
   
   periodic {
-    cron            = "0 3 * * 7" # every Sunday at 3am
+    crons            = ["0 3 * * 7"] # every Sunday at 3am
     prohibit_overlap = true
   }
   
@@ -15,10 +16,6 @@ job "update-geo-ip-db" {
       type      = "host"
       read_only = false
       source    = "geo-ip-db"
-    }
-    
-    vault {
-      policies = ["geo-ip-maxmind"]
     }
   
     task "update-geo-ip-db-task" {
@@ -34,11 +31,21 @@ job "update-geo-ip-db" {
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
       }
+      
+      vault {
+        role = "any1-nomad-workloads-controller"
+      }
+
+      identity {
+        name = "vault_default"
+        aud  = ["any1-infra"]
+        ttl  = "1h"
+      }
 
       template {
         data = <<EOH
-          {{with secret "kv/geo-ip-maxmind"}}
-            LICENSE_KEY="{{.Data.data.SECRET_KEY}}"
+          {{with secret "kv/live-services/update-geo-ip-db"}}
+            LICENSE_KEY="{{.Data.data.LICENSE_KEY}}"
           {{end}}
         EOH
         destination = "secrets/file.env"

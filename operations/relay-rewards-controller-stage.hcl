@@ -1,6 +1,7 @@
 job "relay-rewards-controller-stage" {
   datacenters = ["ator-fin"]
   type = "service"
+  namespace = "stage-protocol"
 
   group "relay-rewards-controller-stage-group" {
     
@@ -34,19 +35,34 @@ job "relay-rewards-controller-stage" {
       }
 
       vault {
-        policies = ["valid-ator-stage"]
+        role = "any1-nomad-workloads-controller"
+      }
+
+      identity {
+        name = "vault_default"
+        aud  = ["any1-infra"]
+        ttl  = "1h"
       }
 
       template {
         data = <<EOH
-        {{with secret "kv/valid-ator/stage"}}
-          RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.DISTRIBUTION_OPERATOR_KEY}}"
+        {{with secret "kv/stage-protocol/relay-rewards-controller-stage"}}
+          RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
-          BUNDLER_NETWORK="{{.Data.data.IRYS_NETWORK}}"
-          BUNDLER_CONTROLLER_KEY="{{.Data.data.DISTRIBUTION_OPERATOR_KEY}}"
-
+          BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
+          BUNDLER_CONTROLLER_KEY="{{.Data.data.BUNDLER_CONTROLLER_KEY}}"
+          
+          JSON_RPC="{{.Data.data.JSON_RPC}}"
+          
           CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
+        EOH
+        destination = "secrets/keys.env"
+        env         = true
+      }
+
+      template {
+        data = <<EOH
         OPERATOR_REGISTRY_PROCESS_ID="[[ consulKey "smart-contracts/stage/operator-registry-address" ]]"
         RELAY_REWARDS_PROCESS_ID="[[ consulKey "smart-contracts/stage/relay-rewards-address" ]]"
         TOKEN_CONTRACT_ADDRESS="[[ consulKey "ator-token/sepolia/stage/address" ]]"
@@ -62,7 +78,7 @@ job "relay-rewards-controller-stage" {
           ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
         EOH
-        destination = "secrets/file.env"
+        destination = "local/config.env"
         env         = true
       }
 

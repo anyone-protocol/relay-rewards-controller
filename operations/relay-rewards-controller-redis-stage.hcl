@@ -1,6 +1,7 @@
 job "relay-rewards-controller-redis-stage" {
   datacenters = ["ator-fin"]
   type = "service"
+  namespace = "stage-protocol"
 
   group "relay-rewards-controller-redis-stage-group" {
     count = 1
