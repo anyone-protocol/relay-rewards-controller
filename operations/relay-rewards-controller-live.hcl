@@ -3,6 +3,11 @@ job "relay-rewards-controller-live" {
   type = "service"
   namespace = "live-protocol"
 
+  constraint {
+    attribute = "${meta.pool}"
+    value = "live-protocol"
+  }
+
   group "relay-rewards-controller-live-group" {
     
     count = 1

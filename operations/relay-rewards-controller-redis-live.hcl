@@ -2,6 +2,11 @@ job "relay-rewards-controller-redis-live" {
   datacenters = ["ator-fin"]
   type = "service"
   namespace = "live-protocol"
+
+  constraint {
+    attribute = "${meta.pool}"
+    value = "live-protocol"
+  }
   
   group "relay-rewards-controller-redis-live-group" {
     count = 1
@@ -12,6 +17,20 @@ job "relay-rewards-controller-redis-live" {
         host_network = "wireguard"
       }
     }
+
+    service {
+      name = "relay-rewards-controller-redis-live"
+      port = "redis"
+      
+      check {
+        name     = "relay rewards controller live redis health check"
+        type     = "tcp"
+        interval = "5s"
+        timeout  = "10s"
+        address_mode = "alloc"
+      }
+    }
+
     task "relay-rewards-controller-redis-live" {
       driver = "docker"
       config {
@@ -25,18 +44,6 @@ job "relay-rewards-controller-redis-live" {
       resources {
         cpu    = 512
         memory = 512
-      }
-
-      service {
-        name = "relay-rewards-controller-redis-live"
-        port = "redis"
-        
-        check {
-          name     = "relay rewards controller live redis health check"
-          type     = "tcp"
-          interval = "5s"
-          timeout  = "10s"
-        }
       }
 
       template {

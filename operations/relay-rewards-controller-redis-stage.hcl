@@ -3,6 +3,11 @@ job "relay-rewards-controller-redis-stage" {
   type = "service"
   namespace = "stage-protocol"
 
+  constraint {
+    attribute = "${meta.pool}"
+    value = "stage"
+  }
+
   group "relay-rewards-controller-redis-stage-group" {
     count = 1
 
@@ -12,6 +17,20 @@ job "relay-rewards-controller-redis-stage" {
         host_network = "wireguard"
       }
     }
+
+    service {
+      name = "relay-rewards-controller-redis-stage"
+      port = "redis"
+      
+      check {
+        name     = "relay rewards controller stage redis health check"
+        type     = "tcp"
+        interval = "5s"
+        timeout  = "10s"
+        address_mode = "alloc"
+      }
+    }
+
     task "relay-rewards-controller-redis-stage" {
       driver = "docker"
       config {
@@ -25,18 +44,6 @@ job "relay-rewards-controller-redis-stage" {
       resources {
         cpu    = 512
         memory = 512
-      }
-
-      service {
-        name = "relay-rewards-controller-redis-stage"
-        port = "redis"
-        
-        check {
-          name     = "relay rewards controller stage redis health check"
-          type     = "tcp"
-          interval = "5s"
-          timeout  = "10s"
-        }
       }
 
       template {
