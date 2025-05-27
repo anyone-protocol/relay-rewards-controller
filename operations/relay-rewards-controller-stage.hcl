@@ -100,7 +100,7 @@ job "relay-rewards-controller-stage" {
         CONSUL_PORT="8500"
         SERVICE_NAME="relay-rewards-controller-stage"
         ROUND_PERIOD_SECONDS="900"
-        DO_CLEAN="false"
+        DO_CLEAN="true"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
         CU_URL="https://cu.anyone.permaweb.services"
