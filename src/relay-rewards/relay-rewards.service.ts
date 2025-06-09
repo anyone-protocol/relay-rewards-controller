@@ -29,7 +29,7 @@ export class RelayRewardsService {
       RELAY_REWARDS_PROCESS_ID: string
       RELAY_REWARDS_CONTROLLER_KEY: string
       HODLER_CONTRACT_ADDRESS: string
-      EVM_JSON_RPC: string
+      JSON_RPC: string
       USE_HODLER: string
     }>
   ) {
@@ -40,10 +40,10 @@ export class RelayRewardsService {
     this.logger.log(`Initializing relay rewards service (IS_LIVE: ${this.isLive}, USE_HODLER: ${this.useHodler})`)
 
     if (this.useHodler) {
-      const jsonRpc = this.config.get<string>('EVM_JSON_RPC', { infer: true })
+      const jsonRpc = this.config.get<string>('JSON_RPC', { infer: true })
       if (!jsonRpc) {
-        this.logger.error('Missing EVM JSON RPC URL')
-        throw new Error('Missing EVM JSON RPC URL')
+        this.logger.error('Missing JSON RPC URL')
+        throw new Error('Missing JSON RPC URL')
       }
       const provider = new ethers.JsonRpcProvider(jsonRpc)
       
