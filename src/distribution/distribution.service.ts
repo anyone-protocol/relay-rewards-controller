@@ -266,7 +266,11 @@ export class DistributionService {
         if (verifiedAddress && verifiedAddress.length > 0) {
           const pVA = ethers.getAddress(verifiedAddress)
 
-          if (!this.useHodler || (locksData[relay.fingerprint] && locksData[relay.fingerprint].includes(pVA))) {
+          if (!this.useHodler || 
+            ( hardwareData[relay.fingerprint] ||
+              (locksData[relay.fingerprint] && locksData[relay.fingerprint].includes(pVA))
+            )
+          ) {
             const locationCell = cells[relay.fingerprint] ?? ''
             const locationSize = sizes[locationCell] ?? 0
             const score: ScoreData = {
