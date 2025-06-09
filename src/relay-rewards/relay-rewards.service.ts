@@ -21,6 +21,8 @@ export class RelayRewardsService {
 
   private signer!: AosSigningFunction
 
+  private readonly useHodler: boolean
+
   constructor(
     private readonly config: ConfigService<{
       IS_LIVE: string
@@ -28,28 +30,34 @@ export class RelayRewardsService {
       RELAY_REWARDS_CONTROLLER_KEY: string
       HODLER_CONTRACT_ADDRESS: string
       EVM_JSON_RPC: string
+      USE_HODLER: string
     }>
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
+    
+    this.useHodler = this.config.get<string>('USE_HODLER', { infer: true }) === 'true'
 
-    this.logger.log(`Initializing relay rewards service (IS_LIVE: ${this.isLive})`)
-    const jsonRpc = this.config.get<string>('EVM_JSON_RPC', { infer: true })
-    if (!jsonRpc) {
-      this.logger.error('Missing EVM JSON RPC URL')
-      throw new Error('Missing EVM JSON RPC URL')
+    this.logger.log(`Initializing relay rewards service (IS_LIVE: ${this.isLive}, USE_HODLER: ${this.useHodler})`)
+
+    if (this.useHodler) {
+      const jsonRpc = this.config.get<string>('EVM_JSON_RPC', { infer: true })
+      if (!jsonRpc) {
+        this.logger.error('Missing EVM JSON RPC URL')
+        throw new Error('Missing EVM JSON RPC URL')
+      }
+      const provider = new ethers.JsonRpcProvider(jsonRpc)
+      
+      const hodlerAddress = this.config.get<string>('HODLER_CONTRACT_ADDRESS', { infer: true })
+      this.hodlerContract =  new ethers.Contract(
+          hodlerAddress,
+          hodlerABI,
+          provider
+        )
+      
+      if (!this.hodlerContract) {
+        this.logger.error('Failed to initialize HODLER contract')
+      } else this.logger.log(`HODLER contract initialized at address: ${hodlerAddress}`)
     }
-    const provider = new ethers.JsonRpcProvider(jsonRpc)
-    
-    const hodlerAddress = this.config.get<string>('HODLER_CONTRACT_ADDRESS', { infer: true })
-    this.hodlerContract =  new ethers.Contract(
-        hodlerAddress,
-        hodlerABI,
-        provider
-      )
-    
-    if (!this.hodlerContract) {
-      this.logger.error('Failed to initialize HODLER contract')
-    } else this.logger.log(`HODLER contract initialized at address: ${hodlerAddress}`)
 
     const relayRewardsPid = this.config.get<string>('RELAY_REWARDS_PROCESS_ID', {
       infer: true,
@@ -80,29 +88,30 @@ export class RelayRewardsService {
   }> {
     const locksData = {}
     const stakingData = {}
+    if (this.useHodler) {
+      const keys = await this.hodlerContract.getHodlerKeys()
+      for (const key of keys) {
+        const locks: { fingerprint: string, operator: string, amount: string }[] = await this.hodlerContract.getLocks(key)
+        locks.forEach((lock) => {
+          if (!locksData[lock.fingerprint]) {
+            locksData[lock.fingerprint] = []
+          }
+          if (!locksData[lock.fingerprint].includes(lock.operator)) {
+            locksData[lock.fingerprint].push(ethers.getAddress(lock.operator))
+          }
+        })
 
-    const keys = await this.hodlerContract.getHodlerKeys()
-    for (const key of keys) {
-      const locks: { fingerprint: string, operator: string, amount: string }[] = await this.hodlerContract.getLocks(key)
-      locks.forEach((lock) => {
-        if (!locksData[lock.fingerprint]) {
-          locksData[lock.fingerprint] = []
-        }
-        if (!locksData[lock.fingerprint].includes(lock.operator)) {
-          locksData[lock.fingerprint].push(ethers.getAddress(lock.operator))
-        }
-      })
-
-      const stakes: { operator: string, amount: string }[] = await this.hodlerContract.getStakes(key)
-      stakes.forEach((stake) => {
-        if (!stakingData[stake.operator]) {
-          stakingData[stake.operator] = {}
-        }
-        stakingData[stake.operator][key] = stake.amount
-      })
-      this.logger.log(`Fetched staking data [${stakes.length}] for hodler ${key}`)
+        const stakes: { operator: string, amount: string }[] = await this.hodlerContract.getStakes(key)
+        stakes.forEach((stake) => {
+          if (!stakingData[stake.operator]) {
+            stakingData[stake.operator] = {}
+          }
+          stakingData[stake.operator][key] = stake.amount
+        })
+        this.logger.log(`Fetched staking data [${stakes.length}] for hodler ${key}`)
+      }
+      this.logger.log(`Fetched staking data for ${Object.keys(stakingData).length} operators`)
     }
-    this.logger.log(`Fetched staking data for ${Object.keys(stakingData).length} operators`)
 
     return { stakingData, locksData }
   }

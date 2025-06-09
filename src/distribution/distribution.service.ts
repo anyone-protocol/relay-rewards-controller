@@ -29,6 +29,7 @@ export class DistributionService {
   private isLive?: string
 
   private static readonly scoresPerBatch = 420
+  private readonly useHodler: boolean
 
   constructor(
     private readonly config: ConfigService<{
@@ -38,6 +39,7 @@ export class DistributionService {
       BUNDLER_CONTROLLER_KEY: string
       ONIONOO_DETAILS_URI: string
       DETAILS_URI_AUTH: string
+      USE_HODLER: string
     }>,
     private readonly relayRewardsService: RelayRewardsService,
     private readonly operatorRegistryService: OperatorRegistryService,
@@ -52,8 +54,10 @@ export class DistributionService {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
     geoip.startWatchingDataUpdate()
 
+    this.useHodler = this.config.get<string>('USE_HODLER', { infer: true }) === 'true'
+
     this.logger.log(
-      `Initializing distribution service (IS_LIVE: ${this.isLive})`
+      `Initializing distribution service (IS_LIVE: ${this.isLive}, USE_HODLER: ${this.useHodler})`
     )
   }
 
@@ -262,7 +266,7 @@ export class DistributionService {
         if (verifiedAddress && verifiedAddress.length > 0) {
           const pVA = ethers.getAddress(verifiedAddress)
 
-          if (locksData[relay.fingerprint] && locksData[relay.fingerprint].includes(pVA)) {
+          if (!this.useHodler || (locksData[relay.fingerprint] && locksData[relay.fingerprint].includes(pVA))) {
             const locationCell = cells[relay.fingerprint] ?? ''
             const locationSize = sizes[locationCell] ?? 0
             const score: ScoreData = {
