@@ -20,6 +20,7 @@ import { UptimeTicks } from './schemas/uptime-ticks'
 import { differenceInDays, startOfDay, subDays } from 'date-fns'
 import { UptimeStreak } from './schemas/uptime-streak'
 import { BundlingService } from '../bundling/bundling.service'
+import { ethers } from 'ethers'
 
 @Injectable()
 export class DistributionService {
@@ -243,6 +244,7 @@ export class DistributionService {
 
   public async getCurrentScores(stamp: number): Promise<ScoreData[]> {
     const relaysData = await this.fetchRelays()
+    const { locksData, stakingData } = await this.relayRewardsService.getHodlerData()
     const operatorRegistryState = await this.operatorRegistryService.getOperatorRegistryState()
     const verificationData = operatorRegistryState.VerifiedFingerprintsToOperatorAddresses
     const hardwareData = operatorRegistryState.VerifiedHardwareFingerprints
@@ -256,21 +258,26 @@ export class DistributionService {
     relaysData.forEach(relay => {
       if (relay.running && relay.consensus_weight > 0) {
         const verifiedAddress = verificationData[relay.fingerprint]
+
         if (verifiedAddress && verifiedAddress.length > 0) {
-          const locationCell = cells[relay.fingerprint] ?? ''
-          const locationSize = sizes[locationCell] ?? 0
-          const score: ScoreData = {
-            Fingerprint: relay.fingerprint,
-            Address: verifiedAddress,
-            Network: relay.consensus_weight,
-            FamilySize: (relay.effective_family?.length ?? 1) - 1,
-            IsHardware: hardwareData[relay.fingerprint] ?? false,
-            LocationSize: locationSize - 1,
-            UptimeStreak: uptimeStreaks[relay.fingerprint] ?? 0,
-            ExitBonus: relay.flags?.includes('Exit') ?? false,
+          const pVA = ethers.getAddress(verifiedAddress)
+
+          if (locksData[relay.fingerprint] && locksData[relay.fingerprint].includes(pVA)) {
+            const locationCell = cells[relay.fingerprint] ?? ''
+            const locationSize = sizes[locationCell] ?? 0
+            const score: ScoreData = {
+              Fingerprint: relay.fingerprint,
+              Address: verifiedAddress,
+              Network: relay.consensus_weight,
+              FamilySize: (relay.effective_family?.length ?? 1) - 1,
+              IsHardware: hardwareData[relay.fingerprint] ?? false,
+              LocationSize: locationSize - 1,
+              UptimeStreak: uptimeStreaks[relay.fingerprint] ?? 0,
+              ExitBonus: relay.flags?.includes('Exit') ?? false,
+            }
+            scores.push(score)
+            uptimeTicks.push(relay.fingerprint)
           }
-          scores.push(score)
-          uptimeTicks.push(relay.fingerprint)
         } else {
           // this.logger.debug(`Found unverified relay in network details ${relay.fingerprint}`)
         }
