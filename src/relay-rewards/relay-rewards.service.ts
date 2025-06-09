@@ -88,30 +88,35 @@ export class RelayRewardsService {
   }> {
     const locksData = {}
     const stakingData = {}
-    if (this.useHodler) {
-      const keys = await this.hodlerContract.getHodlerKeys()
-      for (const key of keys) {
-        const locks: { fingerprint: string, operator: string, amount: string }[] = await this.hodlerContract.getLocks(key)
-        locks.forEach((lock) => {
-          if (!locksData[lock.fingerprint]) {
-            locksData[lock.fingerprint] = []
-          }
-          if (!locksData[lock.fingerprint].includes(lock.operator)) {
-            locksData[lock.fingerprint].push(ethers.getAddress(lock.operator))
-          }
-        })
 
-        const stakes: { operator: string, amount: string }[] = await this.hodlerContract.getStakes(key)
-        stakes.forEach((stake) => {
-          if (!stakingData[stake.operator]) {
-            stakingData[stake.operator] = {}
+    const keys = await this.hodlerContract.getHodlerKeys()
+    for (const key of keys) {
+      const hodlerAddress = ethers.getAddress(key)
+
+      const locks: { fingerprint: string, operator: string, amount: string }[] = await this.hodlerContract.getLocks(hodlerAddress)
+      locks.forEach((lock) => {
+        if (!locksData[lock.fingerprint]) {
+          locksData[lock.fingerprint] = []
+        }
+        const operatorAddress = ethers.getAddress(lock.operator)
+        if (!locksData[lock.fingerprint].includes(operatorAddress)) {
+          locksData[lock.fingerprint].push(operatorAddress)
+        }
+      })
+
+      const stakes: { operator: string, amount: string }[] = await this.hodlerContract.getStakes(hodlerAddress)
+      stakes.forEach((stake) => {
+        const operatorAddress = ethers.getAddress(stake.operator)
+        if (operatorAddress && operatorAddress.length > 0) {
+          if (!stakingData[operatorAddress]) {
+            stakingData[operatorAddress] = {}
           }
-          stakingData[stake.operator][key] = stake.amount
-        })
-        this.logger.log(`Fetched staking data [${stakes.length}] for hodler ${key}`)
-      }
-      this.logger.log(`Fetched staking data for ${Object.keys(stakingData).length} operators`)
+          stakingData[operatorAddress][hodlerAddress] = stake.amount
+        }
+      })
+      this.logger.log(`Fetched staking data [${stakes.length}] for hodler ${hodlerAddress}`)
     }
+    this.logger.log(`Fetched staking data for ${Object.keys(stakingData).length} operators`)
 
     return { stakingData, locksData }
   }
