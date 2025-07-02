@@ -9,7 +9,6 @@ import { HttpService } from '@nestjs/axios'
 import { AxiosError } from 'axios'
 import { firstValueFrom, catchError } from 'rxjs'
 import { latLngToCell } from 'h3-js'
-import * as geoip from 'geoip-lite'
 import { RelayInfo } from './interfaces/8_3/relay-info'
 import { DetailsResponse } from './interfaces/8_3/details-response'
 import { OperatorRegistryService } from 'src/operator-registry/operator-registry.service'
@@ -21,6 +20,7 @@ import { differenceInDays, startOfDay, subDays } from 'date-fns'
 import { UptimeStreak } from './schemas/uptime-streak'
 import { BundlingService } from '../bundling/bundling.service'
 import { ethers } from 'ethers'
+import { GeoIpService } from '../geo-ip/geo-ip.service'
 
 @Injectable()
 export class DistributionService {
@@ -49,10 +49,10 @@ export class DistributionService {
     private readonly uptimeTicksModel: Model<UptimeTicks>,
     @InjectModel(UptimeStreak.name)
     private readonly uptimeStreakModel: Model<UptimeStreak>,
-    private readonly bundlingService: BundlingService
+    private readonly bundlingService: BundlingService,
+    private readonly geoipService: GeoIpService
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
-    geoip.startWatchingDataUpdate()
 
     this.useHodler = this.config.get<string>('USE_HODLER', { infer: true }) === 'true'
 
@@ -131,12 +131,10 @@ export class DistributionService {
     return relays
   }
 
-  private ipToGeoHex(ip: string): string {
-    let portIndex = ip.indexOf(':')
-    let cleanIp = ip.substring(0, portIndex)
-    let lookupRes = geoip.lookup(cleanIp)?.ll
-    if (lookupRes != undefined) {
-      let [lat, lng] = lookupRes
+  private fingerprintToGeoHex(fingerprint: string): string {
+    const fingerprintGeolocation = this.geoipService.lookup(fingerprint)
+    if (fingerprintGeolocation) {
+      const [lat, lng] = fingerprintGeolocation.coordinates
       return latLngToCell(lat, lng, 4) // resolution 4 - avg hex area 1,770 km^2
     } else return '?'
   }
@@ -150,7 +148,7 @@ export class DistributionService {
 
     relays.forEach(relay => {
       if (verificationData[relay.fingerprint]) {
-        const cell = this.ipToGeoHex(relay.or_addresses[0])
+        const cell = this.fingerprintToGeoHex(relay.fingerprint)
         cells[relay.fingerprint] = cell
         if (sizes[cell] == undefined) sizes[cell] = 0
         sizes[cell] += 1
@@ -253,7 +251,7 @@ export class DistributionService {
     const verificationData = operatorRegistryState.VerifiedFingerprintsToOperatorAddresses
     const hardwareData = operatorRegistryState.VerifiedHardwareFingerprints
     const uptimeStreaks = await this.fetchUptimeStreaks(stamp, verificationData)
-    
+    await this.geoipService.cacheCheck()
     const { sizes, cells } = this.parseLocations(relaysData, verificationData)
 
     const scores: ScoreData[] = []
