@@ -18,12 +18,6 @@ job "relay-rewards-controller-stage" {
       healthy_deadline = "5m"
     }
 
-    volume "geo-ip-db" {
-      type      = "host"
-      read_only = false
-      source    = "geo-ip-db"
-    }
-
     network {
       port "http" {
         host_network = "wireguard"
@@ -106,12 +100,6 @@ job "relay-rewards-controller-stage" {
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
         CU_URL="https://cu.anyone.permaweb.services"
-      }
-
-      volume_mount {
-        volume      = "geo-ip-db"
-        destination = "/geo-ip-db"
-        read_only   = false
       }
       
       resources {
