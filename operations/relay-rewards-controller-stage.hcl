@@ -61,21 +61,26 @@ job "relay-rewards-controller-stage" {
       }
 
       template {
-        data = <<EOH
+        data = <<-EOH
         OPERATOR_REGISTRY_PROCESS_ID="{{ key "smart-contracts/stage/operator-registry-address" }}"
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/stage/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/stage/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/stage/address" }}"
         {{- range service "validator-stage-mongo" }}
-          MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage-testnet"
+        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage-testnet"
         {{- end }}
+
         {{- range service "relay-rewards-controller-redis-stage" }}
-          REDIS_HOSTNAME="{{ .Address }}"
-          REDIS_PORT="{{ .Port }}"
+        REDIS_HOSTNAME="{{ .Address }}"
+        REDIS_PORT="{{ .Port }}"
         {{- end }}
 
         {{- range service "onionoo-war-live" }}
-          ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
+        ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
+        {{- end }}
+
+        {{- range service "api-service-stage" }}
+        ANYONE_API_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
         EOH
         destination = "local/config.env"

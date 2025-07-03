@@ -67,16 +67,21 @@ job "relay-rewards-controller-live" {
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/live/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/live/address" }}"
         {{- range service "validator-live-mongo" }}
-          MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-live-testnet"
+        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-live-testnet"
         {{- end }}
+
         {{- range service "relay-rewards-controller-redis-live" }}
-          REDIS_HOSTNAME="{{ .Address }}"
-          REDIS_PORT="{{ .Port }}"
+        REDIS_HOSTNAME="{{ .Address }}"
+        REDIS_PORT="{{ .Port }}"
         {{- end }}
 
         {{- range service "onionoo-war-live" }}
-          ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
+        ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
+
+        {{- range service "api-service-live" }}
+        API_SERVICE_URL="http://{{ .Address }}:{{ .Port }}"
+        {{ end -}}
         EOH
         destination = "local/config.env"
         env         = true
