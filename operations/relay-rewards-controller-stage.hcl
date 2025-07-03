@@ -88,7 +88,6 @@ job "relay-rewards-controller-stage" {
       }
 
       env {
-        BUMP="redeploy-rewards-3"
         IS_LIVE="true"
         VERSION="[[.commit_sha]]"
         USE_HODLER = "true"

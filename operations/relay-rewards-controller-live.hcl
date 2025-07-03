@@ -88,7 +88,6 @@ job "relay-rewards-controller-live" {
       }
 
       env {
-        BUMP="1"
         IS_LIVE="true"
         VERSION="[[.commit_sha]]"
         USE_HODLER = "false"
