@@ -89,6 +89,7 @@ job "relay-rewards-controller-stage" {
       }
 
       env {
+        BUMP="redeploy-for-new-operator-registry-Ori7-Ejn8fxQCanbhNHvWSvkeR6xOFUnyxCFYPmOUzg"
         IS_LIVE="true"
         VERSION="[[.commit_sha]]"
         USE_HODLER = "true"
