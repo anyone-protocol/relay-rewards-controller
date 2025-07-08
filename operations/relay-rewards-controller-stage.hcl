@@ -44,16 +44,16 @@ job "relay-rewards-controller-stage" {
       }
 
       template {
-        data = <<EOH
+        data = <<-EOH
         {{with secret "kv/stage-protocol/relay-rewards-controller-stage"}}
-          RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
+        RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
-          BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
-          BUNDLER_CONTROLLER_KEY="{{.Data.data.BUNDLER_CONTROLLER_KEY}}"
-          
-          JSON_RPC="{{.Data.data.JSON_RPC}}"
-          
-          CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
+        BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
+        BUNDLER_CONTROLLER_KEY="{{.Data.data.BUNDLER_CONTROLLER_KEY}}"
+        
+        JSON_RPC="{{.Data.data.JSON_RPC}}"
+        
+        CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
         EOH
         destination = "secrets/keys.env"
@@ -66,6 +66,7 @@ job "relay-rewards-controller-stage" {
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/stage/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/stage/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/stage/address" }}"
+
         {{- range service "validator-stage-mongo" }}
         MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage-testnet"
         {{- end }}

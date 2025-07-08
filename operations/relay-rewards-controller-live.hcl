@@ -44,16 +44,16 @@ job "relay-rewards-controller-live" {
       }
 
       template {
-        data = <<EOH
+        data = <<-EOH
         {{with secret "kv/live-protocol/relay-rewards-controller-live"}}
-          RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
+        RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
-          BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
-          BUNDLER_CONTROLLER_KEY="{{.Data.data.BUNDLER_CONTROLLER_KEY}}"
-          
-          JSON_RPC="{{.Data.data.JSON_RPC}}"
-          
-          CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
+        BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
+        BUNDLER_CONTROLLER_KEY="{{.Data.data.BUNDLER_CONTROLLER_KEY}}"
+        
+        JSON_RPC="{{.Data.data.JSON_RPC}}"
+        
+        CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
         EOH
         destination = "secrets/keys.env"
@@ -61,11 +61,12 @@ job "relay-rewards-controller-live" {
       }
 
       template {
-        data = <<EOH
+        data = <<-EOH
         OPERATOR_REGISTRY_PROCESS_ID="{{ key "smart-contracts/live/operator-registry-address" }}"
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/live/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/live/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/live/address" }}"
+
         {{- range service "validator-live-mongo" }}
         MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-live-testnet"
         {{- end }}
