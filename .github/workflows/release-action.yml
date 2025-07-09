@@ -51,18 +51,14 @@ jobs:
           NOMAD_CACERT: admin-ui-ca.crt
           NOMAD_TOKEN: ${{ secrets.NOMAD_TOKEN_RELAY_REWARDS_CONTROLLER_DEPLOY }}
           NOMAD_ADDR: ${{ secrets.NOMAD_ADDR }}
-          CONSUL_CACERT: admin-ui-ca.crt
-          CONSUL_HTTP_TOKEN: ${{ secrets.CONSUL_TOKEN_RELAY_REWARDS_CONTROLLER_DEPLOY }}
-          CONSUL_ADDR: ${{ secrets.CONSUL_ADDR }}
         run: |
-          curl -L https://releases.hashicorp.com/levant/0.3.2/levant_0.3.2_linux_amd64.zip -o levant.zip
-          unzip levant.zip
-          [[ -n $(grep "stage" deploy-vars.json) ]] && ./levant render -var-file="deploy-vars.json" -consul-address=$CONSUL_ADDR -out runtime-job.hcl operations/relay-rewards-controller-stage.hcl
-          [[ -n $(grep "stage" deploy-vars.json) ]] && ./levant render -var-file="deploy-vars.json" -consul-address=$CONSUL_ADDR -out redis.hcl operations/relay-rewards-controller-redis-stage.hcl
-          [[ -z $(grep "stage" deploy-vars.json) ]] && ./levant render -var-file="deploy-vars.json" -consul-address=$CONSUL_ADDR -out runtime-job.hcl operations/relay-rewards-controller-live.hcl
-          [[ -z $(grep "stage" deploy-vars.json) ]] && ./levant render -var-file="deploy-vars.json" -consul-address=$CONSUL_ADDR -out redis.hcl operations/relay-rewards-controller-redis-live.hcl
-
-          curl -L https://releases.hashicorp.com/nomad/1.8.3/nomad_1.8.3_linux_amd64.zip -o nomad.zip
+          curl -L https://releases.hashicorp.com/nomad/1.10.2/nomad_1.10.2_linux_amd64.zip -o nomad.zip
           unzip nomad.zip
-          # ./nomad job run redis.hcl # Deploy redis job independently
-          ./nomad job run runtime-job.hcl
+
+          if grep -q "stage" deploy-vars.json; then
+            sed -i "s/\[\[ .commit_sha \]\]/${GITHUB_SHA}/g" operations/relay-rewards-controller-stage.hcl
+            ./nomad job run operations/relay-rewards-controller-stage.hcl
+          else
+            sed -i "s/\[\[ .commit_sha \]\]/${GITHUB_SHA}/g" operations/relay-rewards-controller-live.hcl
+            ./nomad job run operations/relay-rewards-controller-live.hcl
+          fi
