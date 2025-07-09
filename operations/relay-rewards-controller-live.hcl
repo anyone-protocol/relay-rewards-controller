@@ -29,7 +29,7 @@ job "relay-rewards-controller-live" {
       driver = "docker"
       config {
         network_mode = "host"
-        image = "ghcr.io/anyone-protocol/relay-rewards-controller:[[.deploy]]"
+        image = "ghcr.io/anyone-protocol/relay-rewards-controller:[[ .commit_sha ]]"
         force_pull = true
       }
 
@@ -90,7 +90,7 @@ job "relay-rewards-controller-live" {
 
       env {
         IS_LIVE="true"
-        VERSION="[[.commit_sha]]"
+        VERSION="[[ .commit_sha ]]"
         USE_HODLER = "false"
         BUNDLER_GATEWAY="https://ar.anyone.tech"
         BUNDLER_NODE="https://ar.anyone.tech/bundler"
