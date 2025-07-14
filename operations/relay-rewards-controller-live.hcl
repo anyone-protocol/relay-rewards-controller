@@ -96,7 +96,7 @@ job "relay-rewards-controller-live" {
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
         {{- range service "api-service-live" }}
-        API_SERVICE_URL="http://{{ .Address }}:{{ .Port }}"
+        ANYONE_API_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
         {{- range service "relay-rewards-controller-live-redis-master" }}
         REDIS_MASTER_NAME="{{ .Name }}"
