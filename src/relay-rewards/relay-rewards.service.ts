@@ -89,6 +89,11 @@ export class RelayRewardsService {
     const locksData = {}
     const stakingData = {}
 
+    if (!this.useHodler) {
+      this.logger.warn('HODLER data fetching is disabled')
+      return { locksData, stakingData }
+    }
+
     const keys = await this.hodlerContract.getHodlerKeys()
     for (const key of keys) {
       const hodlerAddress = ethers.getAddress(key)
