@@ -35,6 +35,27 @@ job "relay-rewards-controller-stage" {
         force_pull = true
       }
 
+      env {
+        IS_LIVE="true"
+        VERSION="[[ .commit_sha ]]"
+        REDIS_MODE="sentinel"
+        REDIS_MASTER_NAME="relay-rewards-controller-stage-redis-master"
+        USE_HODLER = "true"
+        BUNDLER_GATEWAY="https://ar.anyone.tech"
+        BUNDLER_NODE="https://ar.anyone.tech/bundler"
+        GEODATADIR="/geo-ip-db/data"
+        GEOTMPDIR="/geo-ip-db/tmp"
+        CPU_COUNT="1"
+        CONSUL_HOST="${NOMAD_IP_http}"
+        CONSUL_PORT="8500"
+        SERVICE_NAME="relay-rewards-controller-stage"
+        ROUND_PERIOD_SECONDS="900"
+        DO_CLEAN="true"
+        PORT="${NOMAD_PORT_http}"
+        NO_COLOR="1"
+        CU_URL="https://cu.anyone.permaweb.services"
+      }
+
       vault {
         role = "any1-nomad-workloads-controller"
       }
@@ -68,46 +89,33 @@ job "relay-rewards-controller-stage" {
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/stage/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/stage/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/stage/address" }}"
-
         {{- range service "validator-stage-mongo" }}
         MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage-testnet"
         {{- end }}
-
-        {{- range service "relay-rewards-controller-redis-stage" }}
-        REDIS_HOSTNAME="{{ .Address }}"
-        REDIS_PORT="{{ .Port }}"
-        {{- end }}
-
         {{- range service "onionoo-war-live" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
-
         {{- range service "api-service-stage" }}
         ANYONE_API_URL="http://{{ .Address }}:{{ .Port }}"
+        {{- end }}
+        {{- range service "relay-rewards-controller-stage-redis-master" }}
+        REDIS_MASTER_NAME="{{ .Name }}"
+        {{- end }}
+        {{- range service "relay-rewards-controller-stage-sentinel-1" }}
+        REDIS_SENTINEL_1_HOST={{ .Address }}
+        REDIS_SENTINEL_1_PORT={{ .Port }}
+        {{- end }}
+        {{- range service "relay-rewards-controller-stage-sentinel-2" }}
+        REDIS_SENTINEL_2_HOST={{ .Address }}
+        REDIS_SENTINEL_2_PORT={{ .Port }}
+        {{- end }}
+        {{- range service "relay-rewards-controller-stage-sentinel-3" }}
+        REDIS_SENTINEL_3_HOST={{ .Address }}
+        REDIS_SENTINEL_3_PORT={{ .Port }}
         {{- end }}
         EOH
         destination = "local/config.env"
         env         = true
-      }
-
-      env {
-        BUMP="redeploy-for-new-operator-registry-Ori7-Ejn8fxQCanbhNHvWSvkeR6xOFUnyxCFYPmOUzg"
-        IS_LIVE="true"
-        VERSION="[[ .commit_sha ]]"
-        USE_HODLER = "true"
-        BUNDLER_GATEWAY="https://ar.anyone.tech"
-        BUNDLER_NODE="https://ar.anyone.tech/bundler"
-        GEODATADIR="/geo-ip-db/data"
-        GEOTMPDIR="/geo-ip-db/tmp"
-        CPU_COUNT="1"
-        CONSUL_HOST="${NOMAD_IP_http}"
-        CONSUL_PORT="8500"
-        SERVICE_NAME="relay-rewards-controller-stage"
-        ROUND_PERIOD_SECONDS="900"
-        DO_CLEAN="true"
-        PORT="${NOMAD_PORT_http}"
-        NO_COLOR="1"
-        CU_URL="https://cu.anyone.permaweb.services"
       }
       
       resources {
