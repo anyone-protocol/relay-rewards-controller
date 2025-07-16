@@ -83,29 +83,45 @@ export class TasksService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     if (this.cluster.isLocalLeader()) {
-      if (this.doClean == 'true') {
-        this.logger.log('Cleaning up jobs...')
+      if (this.doClean === 'true') {
+        this.logger.log(
+          'Cleaning up tasks queue, distribution queue, and task service ' +
+            'state because DO_CLEAN is true'
+        )
         try {
           await this.taskServiceDataModel.deleteMany({})
           await this.tasksQueue.obliterate({ force: true })
           await this.distributionQueue.obliterate({ force: true })
         } catch (error) {
-          this.logger.error(`Failed cleaning up queues: ${error.message}`, error.stack)
+          this.logger.error(
+            `Failed cleaning up queues: ${error.message}`,
+            error.stack
+          )
         }
       }
 
-      const lastData = await this.taskServiceDataModel.findOne().sort({ startedAt: -1 }).limit(1)
+      const lastData = await this.taskServiceDataModel
+        .findOne()
+        .sort({ startedAt: -1 })
+        .limit(1)
       if (lastData) {
         this.logger.log(
-          `Bootstrapped Tasks service with ${lastData.startedAt}(${lastData.complete}, ${lastData.persisted})`
+          `Bootstrapped Tasks service with startedAt: ${lastData.startedAt} ` +
+            `(complete: ${lastData.complete}, persisted: ${lastData.persisted})`
         )
+
         return
       } else {
-        this.logger.log(`Bootstrapping Tasks service with a new distribution queue`)
+        this.logger.log(
+          `Bootstrapping Tasks service with a new distribution queue`
+        )
+
         return this.queueDistribution()
       }
     } else {
-      // this.logger.debug('Not the local leader, skipping bootstrap of tasks service')
+      this.logger.debug(
+        'Not the local leader, skipping bootstrap of tasks service'
+      )
     }
   }
 

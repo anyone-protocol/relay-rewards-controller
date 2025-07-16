@@ -39,23 +39,23 @@ job "relay-rewards-controller-redis-sentinel-live" {
       }
     }
 
-    # volume "redis-master-data" {
-    #   type      = "host"
-    #   source    = "redis-master-data"
-    #   read_only = false
-    # }
+    volume "relay-rewards-controller-redis-sentinel-live-master-data" {
+      type      = "host"
+      source    = "relay-rewards-controller-redis-sentinel-live-master-data"
+      read_only = false
+    }
 
-    # volume "redis-replica-1-data" {
-    #   type      = "host"
-    #   source    = "redis-replica-1-data"
-    #   read_only = false
-    # }
+    volume "relay-rewards-controller-redis-sentinel-live-replica-1-data" {
+      type      = "host"
+      source    = "relay-rewards-controller-redis-sentinel-live-replica-1-data"
+      read_only = false
+    }
 
-    # volume "redis-replica-2-data" {
-    #   type      = "host"
-    #   source    = "redis-replica-2-data"
-    #   read_only = false
-    # }
+    volume "relay-rewards-controller-redis-sentinel-live-replica-2-data" {
+      type      = "host"
+      source    = "relay-rewards-controller-redis-sentinel-live-replica-2-data"
+      read_only = false
+    }
 
     task "relay-rewards-controller-redis-sentinel-live-redis-master-task" {
       driver = "docker"
@@ -76,11 +76,11 @@ job "relay-rewards-controller-redis-sentinel-live" {
         ]
       }
 
-      # volume_mount {
-      #   volume      = "redis-master-data"
-      #   destination = "/data"
-      #   read_only   = false
-      # }
+      volume_mount {
+        volume      = "relay-rewards-controller-redis-sentinel-live-master-data"
+        destination = "/data"
+        read_only   = false
+      }
 
       resources {
         cpu    = 1024
@@ -108,11 +108,11 @@ job "relay-rewards-controller-redis-sentinel-live" {
         ]
       }
 
-      # volume_mount {
-      #   volume      = "redis-replica-1-data"
-      #   destination = "/data"
-      #   read_only   = false
-      # }
+      volume_mount {
+        volume      = "relay-rewards-controller-redis-sentinel-live-replica-1-data"
+        destination = "/data"
+        read_only   = false
+      }
 
       resources {
         cpu    = 1024
@@ -140,11 +140,11 @@ job "relay-rewards-controller-redis-sentinel-live" {
         ]
       }
 
-      # volume_mount {
-      #   volume      = "redis-replica-2-data"
-      #   destination = "/data"
-      #   read_only   = false
-      # }
+      volume_mount {
+        volume      = "relay-rewards-controller-redis-sentinel-live-replica-2-data"
+        destination = "/data"
+        read_only   = false
+      }
 
       resources {
         cpu    = 1024
