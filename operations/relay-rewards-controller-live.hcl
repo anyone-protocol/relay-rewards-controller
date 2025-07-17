@@ -72,7 +72,7 @@ job "relay-rewards-controller-live" {
         RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
         BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
-        BUNDLER_CONTROLLER_KEY="{{.Data.data.BUNDLER_CONTROLLER_KEY}}"
+        BUNDLER_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
         
         JSON_RPC="{{.Data.data.JSON_RPC}}"
         
