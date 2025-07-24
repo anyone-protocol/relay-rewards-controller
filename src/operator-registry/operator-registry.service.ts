@@ -1,9 +1,6 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { AosSigningFunction, sendAosDryRun } from '../util/send-aos-message'
-import { createEthereumDataItemSigner } from '../util/create-ethereum-data-item-signer'
-import { Wallet } from 'ethers'
+import { Injectable, Logger } from '@nestjs/common'
+import { sendAosDryRun } from '../util/send-aos-message'
 import _ from 'lodash'
-import { EthereumSigner } from '../util/arbundles-lite'
 import { ConfigService } from '@nestjs/config'
 import { OperatorRegistryState } from './interfaces/operator-registry'
 
@@ -14,7 +11,6 @@ export class OperatorRegistryService {
   private isLive?: string
 
   private readonly operatorRegistryProcessId: string
-  private readonly operatorRegistryControllerKey: string
 
   constructor(
     private readonly config: ConfigService<{
@@ -24,22 +20,21 @@ export class OperatorRegistryService {
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
 
-    this.logger.log(`Initializing operator registry service (IS_LIVE: ${this.isLive})`)
+    this.logger.log(
+      `Initializing operator registry service (IS_LIVE: ${this.isLive})`
+    )
 
-    const operatorRegistryPid = this.config.get<string>('OPERATOR_REGISTRY_PROCESS_ID', {
-      infer: true,
-    })
+    const operatorRegistryPid = this.config.get<string>(
+      'OPERATOR_REGISTRY_PROCESS_ID',
+      {
+        infer: true,
+      }
+    )
     if (operatorRegistryPid != undefined) {
       this.operatorRegistryProcessId = operatorRegistryPid
-    } else this.logger.error('Missing relay rewards process id')
-
-    const operatorRegistryKey = this.config.get<string>('RELAY_REWARDS_CONTROLLER_KEY', {
-      infer: true,
-    })
-
-    if (operatorRegistryKey != undefined) {
-      this.operatorRegistryControllerKey = operatorRegistryKey
-    } else this.logger.error('Missing relay rewards controller key')
+    } else {
+      this.logger.error('Missing operator registry process id')
+    }
   }
 
   public async getOperatorRegistryState(): Promise<OperatorRegistryState> {
