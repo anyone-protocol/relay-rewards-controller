@@ -56,14 +56,10 @@ job "relay-rewards-controller-stage" {
         CU_URL="https://cu.anyone.permaweb.services"
       }
 
+      consul {}
+
       vault {
         role = "any1-nomad-workloads-controller"
-      }
-
-      identity {
-        name = "vault_default"
-        aud  = ["any1-infra"]
-        ttl  = "1h"
       }
 
       template {
@@ -134,7 +130,7 @@ job "relay-rewards-controller-stage" {
           interval = "5s"
           timeout  = "10s"
           check_restart {
-            limit = 10
+            limit = 30
             grace = "15s"
           }
         }
