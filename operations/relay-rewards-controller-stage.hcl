@@ -56,8 +56,6 @@ job "relay-rewards-controller-stage" {
         CU_URL="https://cu.anyone.permaweb.services"
       }
 
-      consul {}
-
       vault {
         role = "any1-nomad-workloads-controller"
       }
