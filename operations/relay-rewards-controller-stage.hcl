@@ -62,6 +62,8 @@ job "relay-rewards-controller-stage" {
         role = "any1-nomad-workloads-controller"
       }
 
+      consul {}
+
       template {
         data = <<-EOH
         {{with secret "kv/stage-protocol/relay-rewards-controller-stage"}}
