@@ -196,7 +196,7 @@ export function serializeTags(tags: Tag[]): Buffer {
   tap.writeTags(tags)
   return tap.toBuffer()
 }
-export function deserializeTags(tagsBuffer: Buffer): Tag[] {
+export function deserializeTags(tagsBuffer: Buffer<ArrayBuffer>): Tag[] {
   const tap = new AVSCTap(tagsBuffer)
   return tap.readTags()
 }
