@@ -73,7 +73,7 @@ job "relay-rewards-controller-live" {
         
         JSON_RPC="{{.Data.data.JSON_RPC}}"
         
-        CONSUL_TOKEN="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
+        CONSUL_TOKEN_CONTROLLER_CLUSTER="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
         EOH
         destination = "secrets/keys.env"
