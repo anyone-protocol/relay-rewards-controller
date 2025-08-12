@@ -45,15 +45,16 @@ job "relay-rewards-controller-stage" {
         BUNDLER_NODE="https://ar.anyone.tech/bundler"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
-        CPU_COUNT="1"
-        CONSUL_HOST="${NOMAD_IP_http}"
-        CONSUL_PORT="8500"
-        SERVICE_NAME="relay-rewards-controller-stage"
         ROUND_PERIOD_SECONDS="900"
         DO_CLEAN="true"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
         CU_URL="https://cu.anyone.permaweb.services"
+        IS_LOCAL_LEADER="true"
+        CPU_COUNT="1"
+        # CONSUL_HOST="${NOMAD_IP_http}"
+        # CONSUL_PORT="8500"
+        # CONSUL_SERVICE_NAME="relay-rewards-controller-stage"
       }
 
       consul {}

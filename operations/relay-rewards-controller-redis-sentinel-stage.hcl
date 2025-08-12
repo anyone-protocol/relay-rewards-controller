@@ -12,29 +12,22 @@ job "relay-rewards-controller-redis-sentinel-stage" {
     count = 1
 
     network {
-      mode = "bridge"
       port "redis-master" {
-        static = 6388
         host_network = "wireguard"
       }
       port "redis-replica-1" {
-        static = 6389
         host_network = "wireguard"
       }
       port "redis-replica-2" {
-        static = 6391
         host_network = "wireguard"
       }
       port "sentinel-1" {
-        static = 26388
         host_network = "wireguard"
       }
       port "sentinel-2" {
-        static = 26389
         host_network = "wireguard"
       }
       port "sentinel-3" {
-        static = 26391
         host_network = "wireguard"
       }
     }
@@ -62,7 +55,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       config {
         image = "redis:latest"
-        ports = ["redis-master"]
+        network_mode = "host"
 
         args = [
           "redis-server",
@@ -72,7 +65,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
           "--replica-announce-ip", "${NOMAD_IP_redis_master}",
           "--replica-announce-port", "${NOMAD_PORT_redis_master}",
           "--protected-mode", "no",
-          "--bind", "0.0.0.0"
+          "--bind", "${NOMAD_IP_redis_master}"
         ]
       }
 
@@ -93,7 +86,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       config {
         image = "redis:latest"
-        ports = ["redis-replica-1"]
+        network_mode = "host"
 
         args = [
           "redis-server",
@@ -104,7 +97,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
           "--replica-announce-ip", "${NOMAD_IP_redis_replica_1}",
           "--replica-announce-port", "${NOMAD_PORT_redis_replica_1}",
           "--protected-mode", "no",
-          "--bind", "0.0.0.0"
+          "--bind", "${NOMAD_IP_redis_replica_1}"
         ]
       }
 
@@ -125,7 +118,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       config {
         image = "redis:latest"
-        ports = ["redis-replica-2"]
+        network_mode = "host"
 
         args = [
           "redis-server",
@@ -136,7 +129,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
           "--replica-announce-ip", "${NOMAD_IP_redis_replica_2}",
           "--replica-announce-port", "${NOMAD_PORT_redis_replica_2}",
           "--protected-mode", "no",
-          "--bind", "0.0.0.0"
+          "--bind", "${NOMAD_IP_redis_replica_2}"
         ]
       }
 
@@ -157,7 +150,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       template {
         data = <<-EOT
-        bind 0.0.0.0
+        bind {{ env "NOMAD_IP_sentinel_1" }}
         sentinel monitor relay-rewards-controller-stage-redis-master {{ env "NOMAD_IP_redis_master" }} {{ env "NOMAD_PORT_redis_master" }} 2
         sentinel resolve-hostnames yes
         sentinel down-after-milliseconds relay-rewards-controller-stage-redis-master 10000
@@ -170,7 +163,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       config {
         image = "redis:latest"
-        ports = ["sentinel-1"]
+        network_mode = "host"
         args = [
           "redis-sentinel",
           "/local/sentinel.conf",
@@ -190,7 +183,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       template {
         data = <<-EOT
-        bind 0.0.0.0
+        bind {{ env "NOMAD_IP_sentinel_2" }}
         sentinel monitor relay-rewards-controller-stage-redis-master {{ env "NOMAD_IP_redis_master" }} {{ env "NOMAD_PORT_redis_master" }} 2
         sentinel resolve-hostnames yes
         sentinel down-after-milliseconds relay-rewards-controller-stage-redis-master 10000
@@ -203,7 +196,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       config {
         image = "redis:latest"
-        ports = ["sentinel-2"]
+        network_mode = "host"
         args = [
           "redis-sentinel",
           "/local/sentinel.conf",
@@ -223,7 +216,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       template {
         data = <<-EOT
-        bind 0.0.0.0
+        bind {{ env "NOMAD_IP_sentinel_3" }}
         sentinel monitor relay-rewards-controller-stage-redis-master {{ env "NOMAD_IP_redis_master" }} {{ env "NOMAD_PORT_redis_master" }} 2
         sentinel resolve-hostnames yes
         sentinel down-after-milliseconds relay-rewards-controller-stage-redis-master 10000
@@ -236,7 +229,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
 
       config {
         image = "redis:latest"
-        ports = ["sentinel-3"]
+        network_mode = "host"
         args = [
           "redis-sentinel",
           "/local/sentinel.conf",
@@ -259,7 +252,6 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         type     = "tcp"
         interval = "10s"
         timeout  = "3s"
-        address_mode = "alloc"
       }
     }
 
@@ -271,7 +263,6 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         type     = "tcp"
         interval = "10s"
         timeout  = "3s"
-        address_mode = "alloc"
       }
     }
 
@@ -283,7 +274,6 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         type     = "tcp"
         interval = "10s"
         timeout  = "3s"
-        address_mode = "alloc"
       }
     }
 
@@ -295,7 +285,6 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         type     = "tcp"
         interval = "10s"
         timeout  = "3s"
-        address_mode = "alloc"
       }
     }
 
@@ -307,7 +296,6 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         type     = "tcp"
         interval = "10s"
         timeout  = "3s"
-        address_mode = "alloc"
       }
     }
 
@@ -319,7 +307,6 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         type     = "tcp"
         interval = "10s"
         timeout  = "3s"
-        address_mode = "alloc"
       }
     }
   }

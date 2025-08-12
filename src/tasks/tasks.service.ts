@@ -62,7 +62,7 @@ export class TasksService implements OnApplicationBootstrap {
       VERSION: string
       ROUND_PERIOD_SECONDS: number
     }>,
-    private readonly cluster: ClusterService,
+    private readonly clusterService: ClusterService,
     @InjectQueue('tasks-queue')
     public tasksQueue: Queue,
     @InjectQueue('distribution-queue')
@@ -82,7 +82,12 @@ export class TasksService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    if (this.cluster.isLocalLeader()) {
+    this.logger.log('Bootstrapping Tasks Service')
+
+    if (this.clusterService.isTheOne()) {
+      this.logger.log(
+        `I am the leader, checking queue cleanup & immediate queue start`
+      )
       if (this.doClean === 'true') {
         this.logger.log(
           'Cleaning up tasks queue, distribution queue, and task service ' +

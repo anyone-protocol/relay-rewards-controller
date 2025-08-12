@@ -45,15 +45,16 @@ job "relay-rewards-controller-live" {
         BUNDLER_NODE="https://ar.anyone.tech/bundler"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
-        CPU_COUNT="1"
-        CONSUL_HOST="${NOMAD_IP_http}"
-        CONSUL_PORT="8500"
-        SERVICE_NAME="relay-rewards-controller-live"
         ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="true"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
         CU_URL="https://cu.anyone.permaweb.services"
+        IS_LOCAL_LEADER="true"
+        CPU_COUNT="1"
+        # CONSUL_HOST="${NOMAD_IP_http}"
+        # CONSUL_PORT="8500"
+        # CONSUL_SERVICE_NAME="relay-rewards-controller-live"
       }
 
       vault {
