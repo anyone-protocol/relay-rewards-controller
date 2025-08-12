@@ -57,11 +57,11 @@ job "relay-rewards-controller-stage" {
         # CONSUL_SERVICE_NAME="relay-rewards-controller-stage"
       }
 
-      consul {}
-
       vault {
         role = "any1-nomad-workloads-controller"
       }
+
+      consul {}
 
       template {
         data = <<-EOH

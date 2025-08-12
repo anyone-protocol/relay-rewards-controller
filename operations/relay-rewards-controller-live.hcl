@@ -35,6 +35,12 @@ job "relay-rewards-controller-live" {
         force_pull = true
       }
 
+      vault {
+        role = "any1-nomad-workloads-controller"
+      }
+
+      consul {}
+
       env {
         IS_LIVE="true"
         VERSION="[[ .commit_sha ]]"
@@ -55,16 +61,6 @@ job "relay-rewards-controller-live" {
         # CONSUL_HOST="${NOMAD_IP_http}"
         # CONSUL_PORT="8500"
         # CONSUL_SERVICE_NAME="relay-rewards-controller-live"
-      }
-
-      vault {
-        role = "any1-nomad-workloads-controller"
-      }
-
-      identity {
-        name = "vault_default"
-        aud  = ["any1-infra"]
-        ttl  = "1h"
       }
 
       template {
