@@ -24,6 +24,7 @@ export class ClusterService
   private serviceName: string
   private sessionId: string | null = null
   private consul?: Consul
+  private renewInterval?: NodeJS.Timeout
 
   constructor(
     private readonly config: ConfigService<{
@@ -122,7 +123,13 @@ export class ClusterService
   }
 
   async beforeApplicationShutdown(): Promise<void> {
+    this.logger.log('Shutting down cluster...')
+    if (this.renewInterval) {
+      clearInterval(this.renewInterval);
+      this.renewInterval = undefined;
+    }
     if (this.consul && this.isLocalLeader() && this.sessionId) {
+      this.logger.log('Cleaning up leader locks...')
       await this.consul.session.destroy(this.sessionId)
     }
   }
@@ -135,11 +142,16 @@ export class ClusterService
     const { ID } = await this.consul.session.create({
       name: this.serviceId,
       ttl: '15s',
+      behavior: 'delete',
     })
 
-    setInterval(() => {
+    this.renewInterval = setInterval(async () =>{
       if (this.consul) {
-        this.consul.session.renew(ID)
+        try {
+          await this.consul.session.renew(ID)
+        } catch (error) {
+          this.logger.error('Failed to renew consul session', error)
+        }
       }
     }, 10000)
 
@@ -156,7 +168,7 @@ export class ClusterService
         const result = await this.consul.kv.set({
           key: leaderKey,
           value: this.serviceId,
-          acquire: this.sessionId,
+          acquire: this.sessionId
         })
 
         this.isLeader = result
