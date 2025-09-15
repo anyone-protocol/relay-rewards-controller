@@ -88,7 +88,7 @@ export class GeoIpService implements OnApplicationBootstrap {
       return null
     }
 
-    this.logger.log(`Looking up geolocation for fingerprint: [${fingerprint}]`)
+    this.logger.debug(`Looking up geolocation for fingerprint: [${fingerprint}]`)
     return this.fingerprintMapData[fingerprint]
   }
 
