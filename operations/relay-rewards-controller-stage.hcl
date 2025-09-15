@@ -84,7 +84,7 @@ job "relay-rewards-controller-stage" {
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/stage/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/stage/address" }}"
         {{- range service "validator-stage-mongo" }}
-        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage-testnet"
+        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage2"
         {{- end }}
         {{- range service "onionoo-war-live" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
