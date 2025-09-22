@@ -32,18 +32,12 @@ job "relay-rewards-controller-live" {
         force_pull = true
       }
 
-      vault {
-        role = "any1-nomad-workloads-controller"
-      }
-
-      consul {}
-
       env {
         IS_LIVE="true"
         VERSION="[[ .commit_sha ]]"
         REDIS_MODE="sentinel"
         REDIS_MASTER_NAME="relay-rewards-controller-live-redis-master"
-        USE_HODLER = "false"
+        USE_HODLER = "true"
         BUNDLER_GATEWAY="https://ar.anyone.tech"
         BUNDLER_NODE="https://ar.anyone.tech/bundler"
         GEODATADIR="/geo-ip-db/data"
@@ -59,6 +53,12 @@ job "relay-rewards-controller-live" {
         CONSUL_PORT="8500"
         CONSUL_SERVICE_NAME="relay-rewards-controller-live"
       }
+
+      vault {
+        role = "any1-nomad-workloads-controller"
+      }
+
+      consul {}
 
       template {
         data = <<-EOH
@@ -84,7 +84,7 @@ job "relay-rewards-controller-live" {
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/live/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/live/address" }}"
         {{- range service "validator-live-mongo" }}
-        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-live-testnet"
+        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-live2"
         {{- end }}
         {{- range service "onionoo-war-live" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
@@ -121,7 +121,6 @@ job "relay-rewards-controller-live" {
         name = "relay-rewards-controller-live"
         port = "http"
         tags = ["logging"]
-        
         check {
           name     = "live relay-rewards-controller health check"
           type     = "http"
@@ -129,7 +128,7 @@ job "relay-rewards-controller-live" {
           interval = "5s"
           timeout  = "10s"
           check_restart {
-            limit = 10
+            limit = 30
             grace = "15s"
           }
         }
