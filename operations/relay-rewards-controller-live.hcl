@@ -52,7 +52,7 @@ job "relay-rewards-controller-live" {
         DO_CLEAN="true"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
-        CU_URL="https://cu.anyone.permaweb.services"
+        CU_URL="https://cu.anyone.tech"
         IS_LOCAL_LEADER="true"
         CPU_COUNT="1"
         CONSUL_HOST="${NOMAD_IP_http}"
