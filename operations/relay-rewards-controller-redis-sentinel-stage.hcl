@@ -76,8 +76,8 @@ job "relay-rewards-controller-redis-sentinel-stage" {
       }
 
       resources {
-        cpu    = 1024
-        memory = 2048
+        cpu    = 512
+        memory = 512
       }
     }
 
@@ -108,8 +108,8 @@ job "relay-rewards-controller-redis-sentinel-stage" {
       }
 
       resources {
-        cpu    = 1024
-        memory = 1024
+        cpu    = 512
+        memory = 512
       }
     }
 
@@ -140,8 +140,8 @@ job "relay-rewards-controller-redis-sentinel-stage" {
       }
 
       resources {
-        cpu    = 1024
-        memory = 1024
+        cpu    = 512
+        memory = 512
       }
     }
 
