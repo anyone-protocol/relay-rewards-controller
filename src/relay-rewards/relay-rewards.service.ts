@@ -1,6 +1,12 @@
-import { Inject, Injectable, Logger, LoggerService, } from '@nestjs/common'
-import { AosSigningFunction, sendAosMessage } from '../util/send-aos-message'
-import { createEthereumDataItemSigner } from '../util/create-ethereum-data-item-signer'
+import { Injectable, Logger } from '@nestjs/common'
+import {
+  AosSigningFunction,
+  sendAosDryRun,
+  sendAosMessage
+} from '../util/send-aos-message'
+import {
+  createEthereumDataItemSigner
+} from '../util/create-ethereum-data-item-signer'
 import { ethers, Wallet } from 'ethers'
 import _ from 'lodash'
 import { EthereumSigner } from '../util/arbundles-lite'
@@ -128,13 +134,9 @@ export class RelayRewardsService {
 
   public async getLastSnapshot(): Promise<RoundSnapshot | undefined> {
     try {
-      const { result } = await sendAosMessage({
+      const { result } = await sendAosDryRun({
         processId: this.relayRewardsProcessId,
-        signer: this.signer as any, // NB: types, lol
-        tags: [
-          { name: 'Action', value: 'Last-Snapshot' },
-          { name: 'Timestamp', value: Date.now().toString() },
-        ],
+        tags: [ { name: 'Action', value: 'Last-Snapshot' } ]
       })
 
       if (!result.Error) {
@@ -160,7 +162,7 @@ export class RelayRewardsService {
           signer: this.signer as any, // NB: types, lol
           tags: [
             { name: 'Action', value: 'Add-Scores' },
-            { name: 'Timestamp', value: stamp.toString() },
+            { name: 'Round-Timestamp', value: stamp.toString() },
           ],
           data: JSON.stringify({
             Scores: scores,
@@ -197,7 +199,7 @@ export class RelayRewardsService {
         signer: this.signer as any, // NB: types, lol
         tags: [
           { name: 'Action', value: 'Complete-Round' },
-          { name: 'Timestamp', value: stamp.toString() },
+          { name: 'Round-Timestamp', value: stamp.toString() },
         ],
       })
 
