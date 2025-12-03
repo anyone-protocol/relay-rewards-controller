@@ -81,8 +81,8 @@ job "relay-rewards-controller-live" {
         data = <<-EOH
         OPERATOR_REGISTRY_PROCESS_ID="{{ key "smart-contracts/live/operator-registry-address" }}"
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/live/relay-rewards-address" }}"
-        TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/live/address" }}"
-        HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/live/address" }}"
+        TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/mainnet/live/address" }}"
+        HODLER_CONTRACT_ADDRESS="{{ key "hodler/mainnet/live/address" }}"
         {{- range service "validator-live-mongo" }}
         MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-live2"
         {{- end }}
