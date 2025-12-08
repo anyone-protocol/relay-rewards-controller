@@ -142,7 +142,7 @@ export class TasksService implements OnApplicationBootstrap {
   public async queueDistribution(): Promise<void> {
     const lastData = await this.taskServiceDataModel.findOne().sort({ startedAt: -1 }).limit(1)
     const lastStart = lastData ? lastData.startedAt : 0
-
+    this.logger.log(`Starting queueing distribution with last start at ${lastStart}`)
     const now = Date.now()
     if (now - lastStart >= this.minRoundLength) {
       try {
@@ -167,7 +167,7 @@ export class TasksService implements OnApplicationBootstrap {
       )
       .then(
         () => {
-          this.logger.log('[alarm=enqueued-distribution] Enqueued timed distribution job')
+          this.logger.log(`[alarm=enqueued-distribution] Enqueued timed distribution job with timestamp ${now}`)
           return
         },
         error => {
