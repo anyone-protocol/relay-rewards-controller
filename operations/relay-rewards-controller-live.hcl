@@ -68,7 +68,7 @@ job "relay-rewards-controller-live" {
         BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
         BUNDLER_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
         
-        JSON_RPC="{{.Data.data.JSON_RPC}}"
+        JSON_RPC="{{.Data.data.JSON_RPC}}" # Needs update to mainnet in vault!
         
         CONSUL_TOKEN_CONTROLLER_CLUSTER="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
         {{end}}
