@@ -1,11 +1,11 @@
 {
   "name": "relay-rewards-controller",
-  "version": "0.1.0",
+  "version": "0.4.4",
   "description": "",
   "contributors": [
     "ANYONE Protocol Labs",
     "Jim Toth <jim@memeticblock.io>",
-    "Andrzej Tuchołka <kanshi@memeticblock.io>"
+    "Andrzej Tuchołka <kanshi>"
   ],
   "private": false,
   "license": "AGPL-3.0-only",
