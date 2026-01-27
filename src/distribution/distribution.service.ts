@@ -34,9 +34,6 @@ export class DistributionService {
   constructor(
     private readonly config: ConfigService<{
       IS_LIVE: string
-      BUNDLER_NODE: string
-      BUNDLER_NETWORK: string
-      BUNDLER_CONTROLLER_KEY: string
       ONIONOO_DETAILS_URI: string
       DETAILS_URI_AUTH: string
       USE_HODLER: string
