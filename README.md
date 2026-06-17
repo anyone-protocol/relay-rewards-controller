@@ -1,9 +1,9 @@
 # Relay Rewards Controller
 
-A backend service for the [ANYONE Protocol](https://anyone.io) that drives
-**relay reward distribution rounds**. On a fixed interval it scores every
-verified relay in the network, submits those scores to the on-chain
-(AO / Arweave) Relay Rewards process, finalizes the round, and permanently
+A data bridge & smart-contract cranking microservice for the [ANYONE Protocol](https://anyone.io) that feeds
+**relay reward distribution rounds**. On a fixed interval it gathers scoring data for every
+verified relay in the network, submits this data to the on-chain
+(AO / Arweave) Relay Rewards smart-contract process, finalizes the round, and permanently
 archives a summary of the distribution to Arweave.
 
 It is a [NestJS](https://nestjs.com) application backed by Redis (job queues),
