@@ -93,5 +93,9 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "elliptic": "^6.6.1",
+    "secp256k1": "^5.0.1"
   }
 }
