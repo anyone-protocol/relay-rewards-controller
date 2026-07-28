@@ -47,7 +47,10 @@ job "relay-rewards-controller-live" {
         DO_CLEAN="true"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
-        CU_URL="https://cu.anyone.tech"
+        # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists
+        # `/~meta@1.0` and `^/{contract-pid}`, covering both the `~process@1.0/now/...`
+        # reads and the `~process@1.0/push` writes.
+        HB_URL="https://hb.anyone.tech"
         IS_LOCAL_LEADER="true"
         CPU_COUNT="1"
         CONSUL_HOST="${NOMAD_IP_http}"

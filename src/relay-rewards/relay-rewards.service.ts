@@ -1,15 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common'
-import {
-  AosSigningFunction,
-  sendAosDryRun,
-  sendAosMessage
-} from '../util/send-aos-message'
-import {
-  createEthereumDataItemSigner
-} from '../util/create-ethereum-data-item-signer'
 import { ethers, Wallet } from 'ethers'
 import _ from 'lodash'
-import { EthereumSigner } from '../util/arbundles-lite'
+import { EthereumSigner } from '@dha-team/arbundles'
+import {
+  AoClient,
+  AoContractError,
+  createAoClient,
+  nodeUrlFromEnv
+} from '@anyone-protocol/ao-client'
 import { ConfigService } from '@nestjs/config'
 import { AddScoresData } from 'src/distribution/dto/add-scores'
 import RoundSnapshot from 'src/distribution/dto/round-snapshot'
@@ -24,8 +22,9 @@ export class RelayRewardsService {
   private readonly relayRewardsProcessId: string
   private readonly relayRewardsControllerKey: string
   private readonly hodlerContract: ethers.Contract
+  private readonly hbUrl: string
 
-  private signer!: AosSigningFunction
+  private ao!: AoClient
 
   private readonly useHodler: boolean
 
@@ -37,6 +36,7 @@ export class RelayRewardsService {
       HODLER_CONTRACT_ADDRESS: string
       JSON_RPC: string
       USE_HODLER: string
+      HB_URL: string
     }>
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
@@ -79,13 +79,37 @@ export class RelayRewardsService {
     if (relayRewardsKey != undefined) {
       this.relayRewardsControllerKey = relayRewardsKey
     } else this.logger.error('Missing relay rewards controller key')
+
+    // Fail closed, no default. Replaces CU_URL.
+    this.hbUrl = nodeUrlFromEnv({
+      HB_URL: this.config.get<string>('HB_URL', { infer: true })
+    })
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    this.signer = await createEthereumDataItemSigner(new EthereumSigner(this.relayRewardsControllerKey))
+    this.ao = createAoClient({
+      url: this.hbUrl,
+      signer: new EthereumSigner(this.relayRewardsControllerKey),
+      logger: {
+        debug: (m, ...meta) => this.logger.debug(m, ...meta),
+        warn: (m, ...meta) => this.logger.warn(m, ...meta),
+        error: (m, ...meta) => this.logger.error(m, ...meta)
+      }
+    })
     const wallet = new Wallet(this.relayRewardsControllerKey)
     const address = await wallet.getAddress()
-    this.logger.log(`Bootstrapped with signer address ${address}`)
+    this.logger.log(`Bootstrapped with signer address ${address} against node ${this.hbUrl}`)
+
+    // Surface an unreachable node at boot rather than mid-round. Warn, do not throw: a blip
+    // during a rolling deploy should not crash-loop the service.
+    try {
+      this.logger.log(`Node operator address: ${await this.ao.fetchNodeAddress()}`)
+    } catch (error) {
+      this.logger.warn(
+        `Could not reach the HyperBEAM node at ${this.hbUrl} during bootstrap`,
+        error.stack
+      )
+    }
   }
 
   public async getHodlerData(): Promise<{
@@ -132,87 +156,104 @@ export class RelayRewardsService {
     return { stakingData, locksData }
   }
 
-  public async getLastSnapshot(): Promise<RoundSnapshot | undefined> {
+  /**
+   * The completed round's full snapshot — Timestamp, Period, Summary, Configuration and the
+   * per-fingerprint `Details`.
+   *
+   * This was a `Last-Snapshot` dryrun. That action does not exist on the native contract, and
+   * it could not: `Details` are deliberately NEVER persisted to state (they would add ~3.6MB
+   * per round to a state tree that is re-read constantly). They exist only as the OUTPUT of
+   * the `Complete-Round` message, so this reads that message's own slot.
+   *
+   * The slot therefore has to travel from whoever sent Complete-Round. It is threaded through
+   * the BullMQ parent/child return value rather than the payload itself, precisely because the
+   * payload is large and Redis is a poor place to put it.
+   */
+  public async getLastSnapshot(slot: string): Promise<RoundSnapshot | undefined> {
     try {
-      const { result } = await sendAosDryRun({
-        processId: this.relayRewardsProcessId,
-        tags: [ { name: 'Action', value: 'Last-Snapshot' } ]
-      })
+      const output = await this.ao.readSlotOutput(this.relayRewardsProcessId, slot)
 
-      if (!result.Error) {
-        if (!result.Messages) {
-          this.logger.warn(`No messages found for Last-Snapshot [${JSON.stringify(result)}]`)
-        }
-        const data: RoundSnapshot = JSON.parse(result.Messages[0].Data)
-
-        return data
-      } else {
-        this.logger.error(`Failed fetching Last-Snapshot: ${result.Error}`)
-      }
+      return JSON.parse(output) as RoundSnapshot
     } catch (error) {
-      this.logger.error(`Exception in getLastSnapshot: ${error.message}`, error.stack)
+      this.logger.error(
+        `Exception reading the round snapshot from slot ${slot}: ${error.message}`,
+        error.stack
+      )
     }
   }
 
   public async addScores(stamp: number, scores: AddScoresData): Promise<boolean> {
-    if (this.isLive === 'true') {
-      try {
-        const { messageId, result } = await sendAosMessage({
-          processId: this.relayRewardsProcessId,
-          signer: this.signer as any, // NB: types, lol
-          tags: [
-            { name: 'Action', value: 'Add-Scores' },
-            { name: 'Round-Timestamp', value: stamp.toString() },
-          ],
-          data: JSON.stringify({
-            Scores: scores,
-          }),
-        })
-
-        if (!result.Error) {
-          this.logger.log(`[${stamp}] Add-Scores ${Object.keys(scores).length}: ${messageId ?? 'no-message-id'}`)
-
-          return true
-        } else {
-          this.logger.error(`Failed storing ${Object.keys(scores).length} scores for ${stamp}: ${result.Error}`)
-        }
-      } catch (error) {
-        this.logger.error(`Exception in addScores: ${error.message}`, error.stack)
-      }
-    } else {
-      this.logger.warn(`NOT LIVE: Not adding ${scores.length} scores to distribution contract `)
-    }
-
-    return false
-  }
-
-  public async completeRound(stamp: number): Promise<boolean> {
     if (this.isLive !== 'true') {
-      this.logger.warn(`NOT LIVE: Not sending the Complete-Round message`)
+      this.logger.warn(`NOT LIVE: Not adding ${scores.length} scores to distribution contract `)
 
       return false
     }
 
     try {
-      const { messageId, result } = await sendAosMessage({
+      const { id } = await this.ao.sendMessage({
         processId: this.relayRewardsProcessId,
-        signer: this.signer as any, // NB: types, lol
-        tags: [
-          { name: 'Action', value: 'Complete-Round' },
-          { name: 'Round-Timestamp', value: stamp.toString() },
-        ],
+        action: 'Add-Scores',
+        // Tag names must be lowercase for the ans104 signature round-trip; the node
+        // presents them title-cased to the contract (`ctx.tags['Round-Timestamp']`).
+        tags: [{ name: 'round-timestamp', value: stamp.toString() }],
+        data: JSON.stringify({ Scores: scores })
       })
 
-      if (!result.Error) {
-        this.logger.log(`[${stamp}] Complete-Round: ${messageId ?? 'no-message-id'}`)
+      this.logger.log(`[${stamp}] Add-Scores ${Object.keys(scores).length}: ${id}`)
 
-        return true
-      } else {
-        this.logger.error(`Failed Complete-Round for ${stamp}: ${result.Error}`)
-      }
+      return true
     } catch (error) {
-      this.logger.error('Exception in distribute: ${error.message}', error.stack)
+      if (error instanceof AoContractError) {
+        this.logger.error(
+          `Failed storing ${Object.keys(scores).length} scores for ${stamp}: ${error.reason}`
+        )
+      } else {
+        this.logger.error(`Exception in addScores: ${error.message}`, error.stack)
+      }
     }
+
     return false
+  }
+
+  /**
+   * Settle the round. Returns the SLOT of the Complete-Round message, which is where the full
+   * snapshot (incl. Details) lives — see getLastSnapshot. `undefined` means the round did not
+   * settle.
+   */
+  public async completeRound(stamp: number): Promise<string | undefined> {
+    if (this.isLive !== 'true') {
+      this.logger.warn(`NOT LIVE: Not sending the Complete-Round message`)
+
+      return undefined
+    }
+
+    try {
+      const { id, slot } = await this.ao.sendMessage({
+        processId: this.relayRewardsProcessId,
+        action: 'Complete-Round',
+        tags: [{ name: 'round-timestamp', value: stamp.toString() }]
+      })
+
+      if (slot === null) {
+        // The contract accepted it (sendMessage would have thrown otherwise), but without a
+        // slot we cannot retrieve Details later. Report the round as not settled rather than
+        // let persistence silently archive nothing.
+        this.logger.error(`[${stamp}] Complete-Round returned no slot; cannot persist the round`)
+
+        return undefined
+      }
+
+      this.logger.log(`[${stamp}] Complete-Round: ${id} (slot ${slot})`)
+
+      return slot
+    } catch (error) {
+      if (error instanceof AoContractError) {
+        this.logger.error(`Failed Complete-Round for ${stamp}: ${error.reason}`)
+      } else {
+        this.logger.error(`Exception in completeRound: ${error.message}`, error.stack)
+      }
+    }
+
+    return undefined
   }
 }

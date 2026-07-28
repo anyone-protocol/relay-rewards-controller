@@ -244,9 +244,8 @@ export class DistributionService {
   public async getCurrentScores(stamp: number): Promise<ScoreData[]> {
     const relaysData = await this.fetchRelays()
     const { locksData, stakingData } = await this.relayRewardsService.getHodlerData()
-    const operatorRegistryState = await this.operatorRegistryService.getOperatorRegistryState()
-    const verificationData = operatorRegistryState.VerifiedFingerprintsToOperatorAddresses
-    const hardwareData = operatorRegistryState.VerifiedHardwareFingerprints
+    const { verified: verificationData, hardware: hardwareData } =
+      await this.operatorRegistryService.getOperatorRegistryScoring()
     const uptimeStreaks = await this.fetchUptimeStreaks(stamp, verificationData)
     await this.geoipService.cacheCheck()
     const { sizes, cells } = this.parseLocations(relaysData, verificationData)
@@ -299,16 +298,22 @@ export class DistributionService {
     return this.relayRewardsService.addScores(stamp, scoresForLua)
   }
 
-  public async complete(stamp: number): Promise<boolean> {
-    const result = await this.relayRewardsService.completeRound(stamp)
-    if (result) {
+  /**
+   * Settle the round. Returns the SLOT of the Complete-Round message (or undefined if it did
+   * not settle) — the round's full snapshot, including per-fingerprint Details, is that slot's
+   * output and exists nowhere else. persistRound needs it.
+   */
+  public async complete(stamp: number): Promise<string | undefined> {
+    const slot = await this.relayRewardsService.completeRound(stamp)
+    if (slot) {
       this.tasksService.updateDistribution(stamp, true, false)
     }
-    return result
+    return slot
   }
 
-  public async persistRound(stamp: number): Promise<boolean> {
-    const snapshot: RoundSnapshot | undefined = await this.relayRewardsService.getLastSnapshot()
+  public async persistRound(stamp: number, slot: string): Promise<boolean> {
+    const snapshot: RoundSnapshot | undefined =
+      await this.relayRewardsService.getLastSnapshot(slot)
 
     if (!snapshot || snapshot.Timestamp == 0) {
       this.logger.error('Last snapshot not found')
