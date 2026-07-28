@@ -38,9 +38,9 @@ job "relay-rewards-controller-live" {
         REDIS_MODE="sentinel"
         REDIS_MASTER_NAME="relay-rewards-controller-live-redis-master"
         USE_HODLER = "true"
-        BUNDLER_GATEWAY="https://ar.anyone.tech"
-        # BUNDLER_NODE="https://ar.anyone.tech/bundler"
-        BUNDLER_NODE="https://upload.ardrive.io"
+        # Our own node once /~bundler@1.0/tx is edge-allowed + the signer is faff-allow-listed:
+        #   BUNDLER_NODE="https://hb.anyone.tech"
+        BUNDLER_NODE="https://up.arweave.net"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
         ROUND_PERIOD_SECONDS="3600"
@@ -69,7 +69,6 @@ job "relay-rewards-controller-live" {
         {{with secret "kv/live-protocol/relay-rewards-controller-live"}}
         RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
-        BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
         BUNDLER_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
         
         JSON_RPC="{{.Data.data.JSON_RPC}}"
