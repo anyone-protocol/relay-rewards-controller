@@ -24,7 +24,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@anyone-protocol/ao-client": "github:anyone-protocol/ao-client#v0.1.2",
+    "@anyone-protocol/ao-client": "github:anyone-protocol/ao-client#v0.1.3",
     "@dha-team/arbundles": "^1.0.4",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/bullmq": "^11.0.1",
