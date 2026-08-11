@@ -1,3 +1,8 @@
+variable "commit_sha" {
+  type        = string
+  description = "The git commit SHA to use for the runtime image tag"
+}
+
 job "relay-rewards-controller-live" {
   datacenters = ["ator-fin"]
   type = "service"
@@ -28,13 +33,13 @@ job "relay-rewards-controller-live" {
       driver = "docker"
       config {
         network_mode = "host"
-        image = "ghcr.io/anyone-protocol/relay-rewards-controller:[[ .commit_sha ]]"
+        image = "ghcr.io/anyone-protocol/relay-rewards-controller:${var.commit_sha}"
         force_pull = true
       }
 
       env {
         IS_LIVE="true"
-        VERSION="[[ .commit_sha ]]"
+        VERSION = var.commit_sha
         REDIS_MODE="sentinel"
         REDIS_MASTER_NAME="relay-rewards-controller-live-redis-master"
         USE_HODLER = "true"
