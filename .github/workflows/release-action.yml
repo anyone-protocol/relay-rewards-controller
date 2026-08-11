@@ -5,6 +5,7 @@ on:
     branches: main
     tags:
       - v*
+  workflow_dispatch:
 env:
   IMAGE_NAME: relay-rewards-controller
 
