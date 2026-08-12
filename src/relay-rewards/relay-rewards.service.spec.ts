@@ -16,6 +16,7 @@ import { Logger } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { Test, TestingModule } from '@nestjs/testing'
 
+import { EvmProviderModule } from '../evm-provider/evm-provider.module'
 import { RelayRewardsService } from './relay-rewards.service'
 
 const HAVE_NODE = !!process.env.RELAY_REWARDS_PROCESS_ID && !!process.env.HB_URL
@@ -26,8 +27,11 @@ describe('RelayRewardsService', () => {
   let service: RelayRewardsService
 
   beforeEach(async () => {
+    // EvmProviderModule is real rather than mocked: RelayRewardsService resolves its Hodler
+    // contract from it during onApplicationBootstrap, so a stub would skip the wiring this
+    // test exists to exercise. With USE_HODLER unset it probes nothing and stays quiet.
     module = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true })],
+      imports: [ConfigModule.forRoot({ isGlobal: true }), EvmProviderModule],
       providers: [RelayRewardsService]
     })
       .setLogger(new Logger())
