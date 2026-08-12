@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { ethers, Wallet } from 'ethers'
 import _ from 'lodash'
 import { EthereumSigner } from '@dha-team/arbundles'
@@ -12,16 +12,19 @@ import { ConfigService } from '@nestjs/config'
 import { AddScoresData } from 'src/distribution/dto/add-scores'
 import RoundSnapshot from 'src/distribution/dto/round-snapshot'
 import { hodlerABI } from './abi/hodler'
+import { EvmProviderService } from '../evm-provider/evm-provider.service'
 
 @Injectable()
-export class RelayRewardsService {
+export class RelayRewardsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RelayRewardsService.name)
 
   private isLive?: string
 
   private readonly relayRewardsProcessId: string
   private readonly relayRewardsControllerKey: string
-  private readonly hodlerContract: ethers.Contract
+  private hodlerContract?: ethers.Contract
+  private backupHodlerContract?: ethers.Contract
+  private readonly hodlerAddress?: string
   private readonly hbUrl: string
 
   private ao!: AoClient
@@ -37,7 +40,8 @@ export class RelayRewardsService {
       JSON_RPC: string
       USE_HODLER: string
       HB_URL: string
-    }>
+    }>,
+    private readonly evmProvider: EvmProviderService
   ) {
     this.isLive = config.get<string>('IS_LIVE', { infer: true })
     
@@ -46,23 +50,11 @@ export class RelayRewardsService {
     this.logger.log(`Initializing relay rewards service (IS_LIVE: ${this.isLive}, USE_HODLER: ${this.useHodler})`)
 
     if (this.useHodler) {
-      const jsonRpc = this.config.get<string>('JSON_RPC', { infer: true })
-      if (!jsonRpc) {
-        this.logger.error('Missing JSON RPC URL')
-        throw new Error('Missing JSON RPC URL')
+      this.hodlerAddress = this.config.get<string>('HODLER_CONTRACT_ADDRESS', { infer: true })
+      if (!this.hodlerAddress) {
+        this.logger.error('Missing HODLER contract address')
+        throw new Error('Missing HODLER contract address')
       }
-      const provider = new ethers.JsonRpcProvider(jsonRpc)
-      
-      const hodlerAddress = this.config.get<string>('HODLER_CONTRACT_ADDRESS', { infer: true })
-      this.hodlerContract =  new ethers.Contract(
-          hodlerAddress,
-          hodlerABI,
-          provider
-        )
-      
-      if (!this.hodlerContract) {
-        this.logger.error('Failed to initialize HODLER contract')
-      } else this.logger.log(`HODLER contract initialized at address: ${hodlerAddress}`)
     }
 
     const relayRewardsPid = this.config.get<string>('RELAY_REWARDS_PROCESS_ID', {
@@ -110,6 +102,50 @@ export class RelayRewardsService {
         error.stack
       )
     }
+
+    if (this.useHodler) {
+      const provider = await this.evmProvider.getCurrentJsonRpcProvider()
+      const backup = await this.evmProvider.getBackupJsonRpcProvider()
+      if (!provider) {
+        this.logger.error('USE_HODLER is true but no EVM provider is configured')
+        throw new Error('Missing JSON RPC URL')
+      }
+
+      this.hodlerContract =
+        new ethers.Contract(this.hodlerAddress!, hodlerABI, provider)
+      if (backup) {
+        this.backupHodlerContract =
+          new ethers.Contract(this.hodlerAddress!, hodlerABI, backup)
+      }
+      this.logger.log(
+        `HODLER contract initialized at address: ${this.hodlerAddress}` +
+          `${backup ? ' (with backup provider)' : ' (NO backup provider)'}`
+      )
+    }
+  }
+
+  /**
+   * Run a hodler read against the current provider, once more against the backup on failure.
+   *
+   * The bootstrap probe only proves an endpoint was alive THEN; this covers one that dies
+   * between bootstrap and use. Mirrors the retry in operator-registry-controller's hardware
+   * verification.
+   */
+  private async withHodlerFallback<T>(
+    label: string,
+    call: (contract: ethers.Contract) => Promise<T>
+  ): Promise<T> {
+    try {
+      return await call(this.hodlerContract!)
+    } catch (error) {
+      if (!this.backupHodlerContract) { throw error }
+      this.logger.warn(
+        `${label} failed on the current JSON-RPC provider, retrying on the backup: ` +
+          `${error instanceof Error ? error.message : error}`
+      )
+
+      return await call(this.backupHodlerContract)
+    }
   }
 
   public async getHodlerData(): Promise<{
@@ -124,11 +160,16 @@ export class RelayRewardsService {
       return { locksData, stakingData }
     }
 
-    const keys = await this.hodlerContract.getHodlerKeys()
+    const keys = await this.withHodlerFallback(
+      'getHodlerKeys', c => c.getHodlerKeys()
+    )
     for (const key of keys) {
       const hodlerAddress = ethers.getAddress(key)
 
-      const locks: { fingerprint: string, operator: string, amount: string }[] = await this.hodlerContract.getLocks(hodlerAddress)
+      const locks: { fingerprint: string, operator: string, amount: string }[] =
+        await this.withHodlerFallback(
+          `getLocks(${hodlerAddress})`, c => c.getLocks(hodlerAddress)
+        )
       locks.forEach((lock) => {
         if (!locksData[lock.fingerprint]) {
           locksData[lock.fingerprint] = []
@@ -139,7 +180,10 @@ export class RelayRewardsService {
         }
       })
 
-      const stakes: { operator: string, amount: string }[] = await this.hodlerContract.getStakes(hodlerAddress)
+      const stakes: { operator: string, amount: string }[] =
+        await this.withHodlerFallback(
+          `getStakes(${hodlerAddress})`, c => c.getStakes(hodlerAddress)
+        )
       stakes.forEach((stake) => {
         const operatorAddress = ethers.getAddress(stake.operator)
         if (operatorAddress && operatorAddress.length > 0) {
