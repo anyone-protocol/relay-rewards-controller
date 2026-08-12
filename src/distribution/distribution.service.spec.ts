@@ -42,10 +42,11 @@ describe('DistributionService', () => {
       Network: 1300, IsHardware: true, ExitBonus: false,
       UptimeStreak: 3, FamilySize: 0, LocationSize: 1,
     })
-    // What addScores actually serializes, so the assertions measure the real wire payload.
+    // What addScores actually serializes, so the assertions measure the real wire payload:
+    // fingerprint as the KEY only, never repeated inside the value.
     const wireBytes = (batch: ReturnType<typeof score>[]) => {
       const map: Record<string, unknown> = {}
-      batch.forEach(s => (map[s.Fingerprint] = s))
+      batch.forEach(({ Fingerprint, ...rest }) => (map[Fingerprint] = rest))
       return JSON.stringify({ Scores: map }).length
     }
 
@@ -74,6 +75,20 @@ describe('DistributionService', () => {
       const flat = service.groupScoreJobs(input as any).flat()
       expect(flat).toHaveLength(input.length)
       expect(flat.map((s: any) => s.Fingerprint)).toEqual(input.map(s => s.Fingerprint))
+    })
+
+    it('estimates the batch size as the wire payload, not the input objects', () => {
+      const batch = Array.from({ length: 500 }, (_, i) => score(i + 1))
+      const groups = service.groupScoreJobs(batch as any)
+      expect(groups).toHaveLength(1)
+      // The estimate must track the SENT shape. If it measured the input objects it would count
+      // the Fingerprint twice and over-reserve by ~57 B per relay.
+      const sent = wireBytes(groups[0] as any)
+      const withDuplicate = JSON.stringify({
+        Scores: Object.fromEntries(batch.map(s => [s.Fingerprint, s]))
+      }).length
+      expect(sent).toBeLessThan(withDuplicate)
+      expect((withDuplicate - sent) / batch.length).toBeGreaterThan(50)
     })
 
     it('emits no empty groups, including for empty input', () => {

@@ -81,12 +81,30 @@ export class DistributionService {
     )
   }
 
+  /**
+   * The value `Add-Scores` puts on the wire for one relay: everything except `Fingerprint`,
+   * which is already the map key.
+   *
+   * Sending it twice cost ~57 B per relay, ~335 KB on a live round, for a field the contract
+   * never reads from the value (it takes the fingerprint from the key and validates that). The
+   * `Omit` on AddScoresData always claimed this shape; assigning the whole object did not
+   * trigger an excess-property check, so the claim was silently false.
+   *
+   * Shared with the batcher so its size estimate cannot drift from what is actually sent.
+   */
+  private static wireValue(
+    { Fingerprint, ...rest }: ScoreData
+  ): Omit<ScoreData, 'Fingerprint'> {
+    return rest
+  }
+
   public groupScoreJobs(data: ScoreData[]): ScoreData[][] {
     // Mirror what addScores actually puts on the wire: {"Scores":{"<fp>":{...},...}}
     const ENVELOPE = '{"Scores":{}}'.length
-    // "<fp>": {...} plus the separating comma
+    // "<fp>":{...} plus quotes, colon and the separating comma
     const entrySize = (s: ScoreData) =>
-      s.Fingerprint.length + JSON.stringify(s).length + 4
+      s.Fingerprint.length +
+      JSON.stringify(DistributionService.wireValue(s)).length + 4
 
     const groups: ScoreData[][] = []
     let current: ScoreData[] = []
@@ -331,7 +349,9 @@ export class DistributionService {
 
   public async addScores(stamp: number, scores: ScoreData[]): Promise<boolean> {
     const scoresForLua: AddScoresData = {}
-    scores.forEach(score => (scoresForLua[score.Fingerprint] = score))
+    scores.forEach(score => {
+      scoresForLua[score.Fingerprint] = DistributionService.wireValue(score)
+    })
 
     return this.relayRewardsService.addScores(stamp, scoresForLua)
   }
