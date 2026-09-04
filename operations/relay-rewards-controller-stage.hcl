@@ -48,7 +48,7 @@ job "relay-rewards-controller-stage" {
         BUNDLER_NODE="https://up.arweave.net"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
-        ROUND_PERIOD_SECONDS="900"
+        ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="true"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
