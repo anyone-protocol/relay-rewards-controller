@@ -22,7 +22,7 @@ export class DistributionQueue extends WorkerHost {
     super()
   }
 
-  async process(job: Job<any, any, string>): Promise<boolean | AddScoresResult | undefined> {
+  async process(job: Job<any, any, string>): Promise<boolean | string | AddScoresResult | undefined> {
     this.logger.debug(`Dequeueing ${job.name} [${job.id}]`)
 
     switch (job.name) {
@@ -106,7 +106,9 @@ export class DistributionQueue extends WorkerHost {
     return { result: false, stamp: 0, scored: [] }
   }
 
-  async completeDistributionHandler(job: Job<{ stamp: number; total: number }, boolean, string>): Promise<boolean> {
+  // Resolves to the Complete-Round SLOT, which persistDistributionHandler reads the round
+  // snapshot from; undefined when the round did not settle.
+  async completeDistributionHandler(job: Job<{ stamp: number; total: number }, string | undefined, string>): Promise<string | undefined> {
     return job.getChildrenValues().then(
       jobValues => {
         const jobsData = Object.values(jobValues)
@@ -131,29 +133,32 @@ export class DistributionQueue extends WorkerHost {
         }
 
         if (processed.length > 0) {
+          // The settle SLOT, not a boolean: the round snapshot lives in that slot's output
+          // and persistDistributionHandler cannot find it otherwise. Undefined = not settled.
           return this.distribution.complete(job.data.stamp)
         } else {
-          return false
+          return undefined
         }
       },
       error => {
         this.logger.error(`Exception while completing distribution: ${error.message}`, error.stack)
-        return false
+        return undefined
       }
     )
   }
 
   async persistDistributionHandler(job: Job<{ stamp: number }, boolean, string>): Promise<boolean> {
     try {
-      const isComplete = Object.values(await job.getChildrenValues())[0] ?? false
-      if (!isComplete) {
+      // The child returns the Complete-Round SLOT (undefined if the round did not settle).
+      const settleSlot = Object.values(await job.getChildrenValues())[0] as string | undefined
+      if (!settleSlot) {
         this.logger.warn(
           `Round was not marked as complete. Skipping persisting of distribution summary [${job.data.stamp}]`
         )
         return false
       }
-      this.logger.log(`Persisting distribution summary [${job.data.stamp}]`)
-      return this.distribution.persistRound(job.data.stamp)
+      this.logger.log(`Persisting distribution summary [${job.data.stamp}] from slot ${settleSlot}`)
+      return this.distribution.persistRound(job.data.stamp, settleSlot)
     } catch (err) {
       this.logger.error(`Exception persisting distribution summary [${job.data.stamp}]`, err.stack)
     }

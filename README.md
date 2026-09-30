@@ -168,7 +168,7 @@ In production these are injected by Nomad + Vault + Consul KV (see
 | `OPERATOR_REGISTRY_PROCESS_ID` | AO process id for the operator registry                  |
 | `HODLER_CONTRACT_ADDRESS`      | HODLER Ethereum contract address                         |
 | `JSON_RPC`                     | Ethereum JSON-RPC URL for reading the HODLER contract    |
-| `CU_URL`                       | AO Compute Unit URL used by `aoconnect`                  |
+| `HB_URL`                       | Our HyperBEAM node, e.g. `https://hb.anyone.tech`. No default — the service refuses to start without it. |
 
 > **A note on `USE_HODLER`:** this flag is a leftover from the migration to the
 > HODLER staking model. HODLER is now the only supported path going forward, so

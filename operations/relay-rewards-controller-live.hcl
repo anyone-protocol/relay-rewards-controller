@@ -43,16 +43,19 @@ job "relay-rewards-controller-live" {
         REDIS_MODE="sentinel"
         REDIS_MASTER_NAME="relay-rewards-controller-live-redis-master"
         USE_HODLER = "true"
-        BUNDLER_GATEWAY="https://ar.anyone.tech"
-        # BUNDLER_NODE="https://ar.anyone.tech/bundler"
-        BUNDLER_NODE="https://upload.ardrive.io"
+        # Our own node once /~bundler@1.0/tx is edge-allowed + the signer is faff-allow-listed:
+        #   BUNDLER_NODE="https://hb.anyone.tech"
+        BUNDLER_NODE="https://up.arweave.net"
         GEODATADIR="/geo-ip-db/data"
         GEOTMPDIR="/geo-ip-db/tmp"
         ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="true"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
-        CU_URL="https://cu.anyone.tech"
+        # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists
+        # `/~meta@1.0` and `^/{contract-pid}`, covering both the `~process@1.0/now/...`
+        # reads and the `~process@1.0/push` writes.
+        HB_URL="https://hb.anyone.tech"
         IS_LOCAL_LEADER="true"
         CPU_COUNT="1"
         CONSUL_HOST="${NOMAD_IP_http}"
@@ -71,7 +74,6 @@ job "relay-rewards-controller-live" {
         {{with secret "kv/live-protocol/relay-rewards-controller-live"}}
         RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
-        BUNDLER_NETWORK="{{.Data.data.BUNDLER_NETWORK}}"
         BUNDLER_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
         
         JSON_RPC="{{.Data.data.JSON_RPC}}"

@@ -28,7 +28,30 @@ export class DistributionService {
 
   private isLive?: string
 
-  private static readonly scoresPerBatch = 420
+  /**
+   * Batch `Add-Scores` by BYTES, not by a fixed count.
+   *
+   * The constraint that actually exists is the uploader's item size limit: the node pushes every
+   * scheduled message to Arweave via up.arweave.net, which caps an item at 5 MiB. The old
+   * `scoresPerBatch = 420` predates this stack and encoded a legacynet limit instead, so it split
+   * a round into ~15 messages that no longer need splitting.
+   *
+   * That split is not free. Each message is its own slot, and every slot writes state-sized data:
+   * measured at live cardinality, one message per round cut store growth from 167 MiB to 32 MiB
+   * per round (5.2x) with no change in wall clock, because the per-relay cost is keccak in the
+   * contract and does not care how the scores arrive.
+   *
+   * It also makes a round ATOMIC. With N batches, some can land and one can fail, and
+   * `Complete-Round` will happily settle the incomplete set: relays whose batch went missing are
+   * silently under-rewarded. One message either lands or does not.
+   *
+   * Budgeted at 80% of the cap so tags, the ans104 envelope and any growth between rounds have
+   * room. At today's ~260 B/relay that is ~16,100 relays in one message, against 6,010 live.
+   */
+  private static readonly ITEM_SIZE_LIMIT = 5 * 1024 * 1024
+  private static readonly maxBatchBytes = Math.floor(
+    DistributionService.ITEM_SIZE_LIMIT * 0.8
+  )
   private readonly useHodler: boolean
 
   constructor(
@@ -58,29 +81,62 @@ export class DistributionService {
     )
   }
 
+  /**
+   * The value `Add-Scores` puts on the wire for one relay: everything except `Fingerprint`,
+   * which is already the map key.
+   *
+   * Sending it twice cost ~57 B per relay, ~335 KB on a live round, for a field the contract
+   * never reads from the value (it takes the fingerprint from the key and validates that). The
+   * `Omit` on AddScoresData always claimed this shape; assigning the whole object did not
+   * trigger an excess-property check, so the claim was silently false.
+   *
+   * Shared with the batcher so its size estimate cannot drift from what is actually sent.
+   */
+  private static wireValue(
+    { Fingerprint, ...rest }: ScoreData
+  ): Omit<ScoreData, 'Fingerprint'> {
+    return rest
+  }
+
   public groupScoreJobs(data: ScoreData[]): ScoreData[][] {
-    const result = data.reduce<ScoreData[][]>((curr, score): ScoreData[][] => {
-      if (curr.length == 0) {
-        curr.push([score])
-      } else {
-        if (curr[curr.length - 1].length < DistributionService.scoresPerBatch) {
-          const last = curr.pop()
-          if (last != undefined) {
-            last.push(score)
-            curr.push(last)
-          } else {
-            this.logger.error('Last element not found, this should not happen')
-          }
-        } else {
-          curr.push([score])
-        }
+    // Mirror what addScores actually puts on the wire: {"Scores":{"<fp>":{...},...}}
+    const ENVELOPE = '{"Scores":{}}'.length
+    // "<fp>":{...} plus quotes, colon and the separating comma
+    const entrySize = (s: ScoreData) =>
+      s.Fingerprint.length +
+      JSON.stringify(DistributionService.wireValue(s)).length + 4
+
+    const groups: ScoreData[][] = []
+    let current: ScoreData[] = []
+    let bytes = ENVELOPE
+
+    for (const score of data) {
+      const size = entrySize(score)
+      // Never emit an empty group: a single score wider than the budget still has to go, since
+      // there is nothing left to split. It would fail at upload, loudly, rather than silently here.
+      if (current.length > 0 && bytes + size > DistributionService.maxBatchBytes) {
+        groups.push(current)
+        current = []
+        bytes = ENVELOPE
       }
-      return curr
-    }, [])
+      current.push(score)
+      bytes += size
+    }
+    if (current.length > 0) {
+      groups.push(current)
+    }
 
-    this.logger.debug(`Created ${result.length} groups out of ${data.length}`)
+    const budgetKB = Math.round(DistributionService.maxBatchBytes / 1024)
+    const largest = groups.reduce(
+      (max, g) => Math.max(max, g.reduce((b, s) => b + entrySize(s), ENVELOPE)),
+      0
+    )
+    this.logger.log(
+      `Grouped ${data.length} scores into ${groups.length} message(s), ` +
+        `largest ${Math.round(largest / 1024)}KB of a ${budgetKB}KB budget`
+    )
 
-    return result
+    return groups
   }
 
   private async fetchRelays(): Promise<RelayInfo[]> {
@@ -244,9 +300,8 @@ export class DistributionService {
   public async getCurrentScores(stamp: number): Promise<ScoreData[]> {
     const relaysData = await this.fetchRelays()
     const { locksData, stakingData } = await this.relayRewardsService.getHodlerData()
-    const operatorRegistryState = await this.operatorRegistryService.getOperatorRegistryState()
-    const verificationData = operatorRegistryState.VerifiedFingerprintsToOperatorAddresses
-    const hardwareData = operatorRegistryState.VerifiedHardwareFingerprints
+    const { verified: verificationData, hardware: hardwareData } =
+      await this.operatorRegistryService.getOperatorRegistryScoring()
     const uptimeStreaks = await this.fetchUptimeStreaks(stamp, verificationData)
     await this.geoipService.cacheCheck()
     const { sizes, cells } = this.parseLocations(relaysData, verificationData)
@@ -294,21 +349,29 @@ export class DistributionService {
 
   public async addScores(stamp: number, scores: ScoreData[]): Promise<boolean> {
     const scoresForLua: AddScoresData = {}
-    scores.forEach(score => (scoresForLua[score.Fingerprint] = score))
+    scores.forEach(score => {
+      scoresForLua[score.Fingerprint] = DistributionService.wireValue(score)
+    })
 
     return this.relayRewardsService.addScores(stamp, scoresForLua)
   }
 
-  public async complete(stamp: number): Promise<boolean> {
-    const result = await this.relayRewardsService.completeRound(stamp)
-    if (result) {
+  /**
+   * Settle the round. Returns the SLOT of the Complete-Round message (or undefined if it did
+   * not settle) — the round's full snapshot, including per-fingerprint Details, is that slot's
+   * output and exists nowhere else. persistRound needs it.
+   */
+  public async complete(stamp: number): Promise<string | undefined> {
+    const slot = await this.relayRewardsService.completeRound(stamp)
+    if (slot) {
       this.tasksService.updateDistribution(stamp, true, false)
     }
-    return result
+    return slot
   }
 
-  public async persistRound(stamp: number): Promise<boolean> {
-    const snapshot: RoundSnapshot | undefined = await this.relayRewardsService.getLastSnapshot()
+  public async persistRound(stamp: number, slot: string): Promise<boolean> {
+    const snapshot: RoundSnapshot | undefined =
+      await this.relayRewardsService.getLastSnapshot(slot)
 
     if (!snapshot || snapshot.Timestamp == 0) {
       this.logger.error('Last snapshot not found')
