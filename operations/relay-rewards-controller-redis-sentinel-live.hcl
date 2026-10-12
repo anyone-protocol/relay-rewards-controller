@@ -54,7 +54,7 @@ job "relay-rewards-controller-redis-sentinel-live" {
       driver = "docker"
 
       config {
-        image = "redis:latest"
+        image = "redis:8.10"
         network_mode = "host"
 
         args = [
@@ -85,7 +85,7 @@ job "relay-rewards-controller-redis-sentinel-live" {
       driver = "docker"
 
       config {
-        image = "redis:latest"
+        image = "redis:8.10"
         network_mode = "host"
 
         args = [
@@ -117,7 +117,7 @@ job "relay-rewards-controller-redis-sentinel-live" {
       driver = "docker"
 
       config {
-        image = "redis:latest"
+        image = "redis:8.10"
         network_mode = "host"
 
         args = [
@@ -162,7 +162,7 @@ job "relay-rewards-controller-redis-sentinel-live" {
       }
 
       config {
-        image = "redis:latest"
+        image = "redis:8.10"
         network_mode = "host"
         args = [
           "redis-sentinel",
@@ -195,7 +195,7 @@ job "relay-rewards-controller-redis-sentinel-live" {
       }
 
       config {
-        image = "redis:latest"
+        image = "redis:8.10"
         network_mode = "host"
         args = [
           "redis-sentinel",
@@ -228,7 +228,7 @@ job "relay-rewards-controller-redis-sentinel-live" {
       }
 
       config {
-        image = "redis:latest"
+        image = "redis:8.10"
         network_mode = "host"
         args = [
           "redis-sentinel",

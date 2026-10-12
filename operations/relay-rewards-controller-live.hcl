@@ -91,13 +91,13 @@ job "relay-rewards-controller-live" {
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/live/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/ethereum/live/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/ethereum/live/address" }}"
-        {{- range service "validator-live-mongo" }}
+        {{- range service "validator-live-mongo|any" }}
         MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-ethereum"
         {{- end }}
-        {{- range service "onionoo-war-live" }}
+        {{- range service "onionoo-war-live|any" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
-        {{- range service "api-service-live" }}
+        {{- range service "api-service-live|any" }}
         ANYONE_API_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
         {{- range service "relay-rewards-controller-live-redis-master" }}
@@ -118,6 +118,10 @@ job "relay-rewards-controller-live" {
         EOH
         destination = "local/config.env"
         env         = true
+        wait {
+          min = "30s"
+          max = "90s"
+        }
       }
       
       resources {

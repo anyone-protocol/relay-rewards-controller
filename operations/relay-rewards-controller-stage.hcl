@@ -91,13 +91,13 @@ job "relay-rewards-controller-stage" {
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/stage/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/stage/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/stage/address" }}"
-        {{- range service "validator-stage-mongo" }}
+        {{- range service "validator-stage-mongo|any" }}
         MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage2"
         {{- end }}
-        {{- range service "onionoo-war-live" }}
+        {{- range service "onionoo-war-live|any" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
-        {{- range service "api-service-stage" }}
+        {{- range service "api-service-stage|any" }}
         ANYONE_API_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
         {{- range service "relay-rewards-controller-stage-redis-master" }}
@@ -118,6 +118,10 @@ job "relay-rewards-controller-stage" {
         EOH
         destination = "local/config.env"
         env         = true
+        wait {
+          min = "30s"
+          max = "90s"
+        }
       }
       
       resources {
