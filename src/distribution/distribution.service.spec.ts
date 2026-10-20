@@ -33,6 +33,43 @@ describe('DistributionService', () => {
   // groupScoreJobs batches by BYTES against the uploader's 5 MiB item cap. These are cheap and
   // pure, and the failure they guard against is silent: a batch that overshoots the cap is
   // rejected at upload, and a round that splits when it need not costs slots and store.
+  describe('capNetworkScore', () => {
+    const modules: TestingModule[] = []
+    const build = async (env: Record<string, string>) => {
+      Object.assign(process.env, env)
+      try {
+        const m = await Test.createTestingModule({
+          imports: [ConfigModule.forRoot({ ignoreEnvFile: true })],
+          providers: [DistributionService],
+        })
+          .useMocker(() => ({}))
+          .compile()
+        modules.push(m)
+        return m.get<DistributionService>(DistributionService)
+      } finally {
+        Object.keys(env).forEach(k => delete process.env[k])
+      }
+    }
+    afterEach(async () => {
+      await Promise.all(modules.splice(0).map(m => m.close()))
+    })
+
+    it('passes the consensus weight through when disabled', async () => {
+      const s = await build({ NETWORK_SCORE_CAP_ENABLED: 'false', NETWORK_SCORE_CAP: '1000' })
+      expect(s.capNetworkScore(5000)).toBe(5000)
+    })
+
+    it('caps the consensus weight when enabled', async () => {
+      const s = await build({ NETWORK_SCORE_CAP_ENABLED: 'true', NETWORK_SCORE_CAP: '1000' })
+      expect(s.capNetworkScore(5000)).toBe(1000)
+      expect(s.capNetworkScore(900)).toBe(900)
+    })
+
+    it('refuses to start with an invalid cap when enabled', async () => {
+      await expect(build({ NETWORK_SCORE_CAP_ENABLED: 'true', NETWORK_SCORE_CAP: 'lots' })).rejects.toThrow()
+    })
+  })
+
   describe('groupScoreJobs', () => {
     const CAP = 5 * 1024 * 1024
     const BUDGET = Math.floor(CAP * 0.8)
