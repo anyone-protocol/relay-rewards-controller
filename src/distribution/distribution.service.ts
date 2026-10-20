@@ -53,6 +53,8 @@ export class DistributionService {
     DistributionService.ITEM_SIZE_LIMIT * 0.8
   )
   private readonly useHodler: boolean
+  private readonly networkScoreCapEnabled: boolean
+  private readonly networkScoreCap: number
 
   constructor(
     private readonly config: ConfigService<{
@@ -60,6 +62,8 @@ export class DistributionService {
       ONIONOO_DETAILS_URI: string
       DETAILS_URI_AUTH: string
       USE_HODLER: string
+      NETWORK_SCORE_CAP_ENABLED: string
+      NETWORK_SCORE_CAP: string
     }>,
     private readonly relayRewardsService: RelayRewardsService,
     private readonly operatorRegistryService: OperatorRegistryService,
@@ -76,8 +80,14 @@ export class DistributionService {
 
     this.useHodler = this.config.get<string>('USE_HODLER', { infer: true }) === 'true'
 
+    this.networkScoreCapEnabled = this.config.get<string>('NETWORK_SCORE_CAP_ENABLED', { infer: true }) === 'true'
+    this.networkScoreCap = Number(this.config.get<string>('NETWORK_SCORE_CAP', { infer: true }))
+    if (this.networkScoreCapEnabled && !(Number.isInteger(this.networkScoreCap) && this.networkScoreCap > 0)) {
+      throw new Error('NETWORK_SCORE_CAP must be a positive integer when NETWORK_SCORE_CAP_ENABLED is true')
+    }
+
     this.logger.log(
-      `Initializing distribution service (IS_LIVE: ${this.isLive}, USE_HODLER: ${this.useHodler})`
+      `Initializing distribution service (IS_LIVE: ${this.isLive}, USE_HODLER: ${this.useHodler}, NETWORK_SCORE_CAP: ${this.networkScoreCapEnabled ? this.networkScoreCap : 'off'})`
     )
   }
 
@@ -297,6 +307,10 @@ export class DistributionService {
     return
   }
 
+  public capNetworkScore(consensusWeight: number): number {
+    return this.networkScoreCapEnabled ? Math.min(consensusWeight, this.networkScoreCap) : consensusWeight
+  }
+
   public async getCurrentScores(stamp: number): Promise<ScoreData[]> {
     const relaysData = await this.fetchRelays()
     const { locksData, stakingData } = await this.relayRewardsService.getHodlerData()
@@ -326,7 +340,7 @@ export class DistributionService {
             const score: ScoreData = {
               Fingerprint: relay.fingerprint,
               Address: verifiedAddress,
-              Network: relay.consensus_weight,
+              Network: this.capNetworkScore(relay.consensus_weight),
               FamilySize: (relay.effective_family?.length ?? 1) - 1,
               IsHardware: hardwareData[relay.fingerprint] ?? false,
               LocationSize: locationSize - 1,

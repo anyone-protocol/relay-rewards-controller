@@ -50,6 +50,8 @@ job "relay-rewards-controller-stage" {
         GEOTMPDIR="/geo-ip-db/tmp"
         ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="true"
+        NETWORK_SCORE_CAP_ENABLED="false"
+        NETWORK_SCORE_CAP="50000"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
         # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists

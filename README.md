@@ -148,6 +148,8 @@ In production these are injected by Nomad + Vault + Consul KV (see
 | `CPU_COUNT`            | Number of Node `cluster` workers to fork (default `1`)                |
 | `ROUND_PERIOD_SECONDS` | Minimum seconds between distribution rounds (production: `3600`)      |
 | `DO_CLEAN`            | `true` obliterates the queues and round state on leader bootstrap      |
+| `NETWORK_SCORE_CAP_ENABLED` | `true` caps each relay's `Network` score (its consensus weight) at `NETWORK_SCORE_CAP` |
+| `NETWORK_SCORE_CAP`    | Positive integer. The highest `Network` score a relay can receive while the cap is enabled |
 
 ### Data sources
 
