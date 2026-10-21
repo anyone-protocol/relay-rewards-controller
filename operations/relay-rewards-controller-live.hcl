@@ -1,6 +1,7 @@
 variable "commit_sha" {
   type        = string
   description = "The git commit SHA to use for the runtime image tag"
+  default     = "7e8a35254965e776814ffaa5678ab940d40fab09"
 }
 
 job "relay-rewards-controller-live" {
@@ -50,8 +51,8 @@ job "relay-rewards-controller-live" {
         GEOTMPDIR="/geo-ip-db/tmp"
         ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="true"
-        NETWORK_SCORE_CAP_ENABLED="false"
-        NETWORK_SCORE_CAP="50000"
+        NETWORK_SCORE_CAP_ENABLED="true"
+        NETWORK_SCORE_CAP="75000"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
         # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists
