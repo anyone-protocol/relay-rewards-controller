@@ -39,8 +39,9 @@ proceeds through a chained set of BullMQ jobs:
      **Operator Registry** AO process (`OPERATOR_REGISTRY_PROCESS_ID`).
    - Fetch token **locks and stakes** from the **HODLER** Ethereum contract
      (`HODLER_CONTRACT_ADDRESS`) to determine reward eligibility.
-   - Look up each relay's geo-location as an [H3](https://h3geo.org) hex cell
-     via the Anyone API (`ANYONE_API_URL`) to compute location diversity.
+   - Look up each relay's primary address through `geo-ip-service` in one
+     batch and place the relay in an [H3](https://h3geo.org) resolution 4 cell
+     to compute location diversity.
    - Track per-relay uptime in MongoDB and compute multi-day uptime streaks.
    - Produce a `ScoreData` record per eligible relay.
 2. **Add scores** — the scores are split into batches (420 per job) and each
@@ -110,7 +111,7 @@ hardware, or an operator lock matching the verified address).
 | `relay-rewards/`     | Talks to the Relay Rewards AO process and the HODLER Ethereum contract     |
 | `operator-registry/` | Reads verified fingerprints / hardware from the Operator Registry process  |
 | `bundling/`          | Uploads round summaries to Arweave via the ArDrive Turbo SDK               |
-| `geo-ip/`            | Caches the Anyone API fingerprint-to-location map for H3 lookups           |
+| `geo-ip/`            | Resolves relay addresses through `geo-ip-service` into H3 cells each round |
 | `cluster/`           | Node `cluster` worker forking + Consul-based leader election               |
 | `util/`              | AO messaging, Ethereum data-item signing, arbundles helpers                |
 
@@ -157,8 +158,7 @@ In production these are injected by Nomad + Vault + Consul KV (see
 | ----------------------------- | ----------------------------------------------------------- |
 | `ONIONOO_DETAILS_URI`         | Network details endpoint (relays + consensus weight)        |
 | `DETAILS_URI_AUTH`            | Optional `Authorization` header value for the details call  |
-| `ANYONE_API_URL`              | Base URL of the Anyone API serving `/fingerprint-map`       |
-| `ANYONE_API_CACHE_TTL`        | Geo map cache TTL in ms (default `3600000`)                 |
+| `GEO_IP_SERVICE_URL`          | Base URL of `geo-ip-service`; `/lookup` is appended         |
 
 ### On-chain / AO
 

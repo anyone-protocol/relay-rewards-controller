@@ -47,8 +47,6 @@ job "relay-rewards-controller-live" {
         # Our own node once /~bundler@1.0/tx is edge-allowed + the signer is faff-allow-listed:
         #   BUNDLER_NODE="https://hb.anyone.tech"
         BUNDLER_NODE="https://up.arweave.net"
-        GEODATADIR="/geo-ip-db/data"
-        GEOTMPDIR="/geo-ip-db/tmp"
         ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="true"
         NETWORK_SCORE_CAP_ENABLED="true"
@@ -100,8 +98,8 @@ job "relay-rewards-controller-live" {
         {{- range service "onionoo-war-live|any" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
-        {{- range service "api-service-live|any" }}
-        ANYONE_API_URL="http://{{ .Address }}:{{ .Port }}"
+        {{- range service "geo-ip-service-live|any" }}
+        GEO_IP_SERVICE_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
         {{- range service "relay-rewards-controller-live-redis-master" }}
         REDIS_MASTER_NAME="{{ .Name }}"

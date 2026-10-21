@@ -317,7 +317,7 @@ export class DistributionService {
     const { verified: verificationData, hardware: hardwareData } =
       await this.operatorRegistryService.getOperatorRegistryScoring()
     const uptimeStreaks = await this.fetchUptimeStreaks(stamp, verificationData)
-    await this.geoipService.cacheCheck()
+    await this.geoipService.resolve(relaysData)
     const { sizes, cells } = this.parseLocations(relaysData, verificationData)
 
     const scores: ScoreData[] = []
