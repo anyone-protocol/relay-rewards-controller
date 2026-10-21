@@ -1,8 +1,5 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http'
 import { AddressInfo } from 'node:net'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { ConfigModule } from '@nestjs/config'
 import { HttpModule } from '@nestjs/axios'
 import { Test, TestingModule } from '@nestjs/testing'
@@ -25,7 +22,6 @@ describe('GeoIpService', () => {
   let requests: string[][]
   let respond: (addresses: string[], res: ServerResponse) => void
   let module: TestingModule | undefined
-  let tempDir: string
 
   const answerFromLocations = (addresses: string[], res: ServerResponse) => {
     res.setHeader('content-type', 'application/json')
@@ -78,21 +74,15 @@ describe('GeoIpService', () => {
   beforeEach(() => {
     requests = []
     respond = answerFromLocations
-    tempDir = mkdtempSync(join(tmpdir(), 'geo-ip-service-'))
   })
 
   afterEach(async () => {
     await module?.close()
     module = undefined
-    rmSync(tempDir, { recursive: true, force: true })
   })
 
-  it('requires exactly one of the url settings', async () => {
-    await expect(createService({})).rejects.toThrow('Exactly one of')
-    await expect(createService({
-      GEO_IP_SERVICE_URL: stubUrl,
-      GEO_IP_SERVICE_URL_FILE: join(tempDir, 'url')
-    })).rejects.toThrow('Exactly one of')
+  it('requires GEO_IP_SERVICE_URL', async () => {
+    await expect(createService({})).rejects.toThrow('GEO_IP_SERVICE_URL is not set!')
   })
 
   it('places each relay in the H3 resolution 4 cell of its primary address', async () => {
@@ -152,25 +142,6 @@ describe('GeoIpService', () => {
 
     expect(service.lookup('A')).toEqual(cellCenter(STOCKHOLM))
     expect(service.lookup('B')).toBeNull()
-  })
-
-  it('reads the address file on every resolve', async () => {
-    const urlFile = join(tempDir, 'geo-ip-service-url')
-    const service = await createService({ GEO_IP_SERVICE_URL_FILE: urlFile })
-    const relays = [{ fingerprint: 'A', or_addresses: ['89.160.20.112:9001'] }]
-
-    await service.resolve(relays)
-    expect(requests).toHaveLength(0)
-    expect(service.lookup('A')).toBeNull()
-
-    writeFileSync(urlFile, '\n')
-    await service.resolve(relays)
-    expect(requests).toHaveLength(0)
-
-    writeFileSync(urlFile, `${stubUrl}\n`)
-    await service.resolve(relays)
-    expect(requests).toHaveLength(1)
-    expect(service.lookup('A')).toEqual(cellCenter(STOCKHOLM))
   })
 
   it('splits large address sets into batches', async () => {

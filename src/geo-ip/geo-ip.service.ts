@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { HttpService } from '@nestjs/axios'
-import { readFileSync } from 'node:fs'
 import { firstValueFrom } from 'rxjs'
 import { cellToLatLng, latLngToCell } from 'h3-js'
 
@@ -37,44 +36,30 @@ const LOOKUP_TIMEOUT_MS = 30_000
 export class GeoIpService {
   private readonly logger = new Logger(GeoIpService.name)
   public fingerprintMapData: FingerprintGeoLocationMap = {}
-  private readonly geoIpServiceUrl: string | undefined
-  private readonly geoIpServiceUrlFile: string | undefined
+  private readonly geoIpServiceUrl: string
 
   constructor(
     readonly config: ConfigService<{
-      GEO_IP_SERVICE_URL?: string
-      GEO_IP_SERVICE_URL_FILE?: string
+      GEO_IP_SERVICE_URL: string
     }>,
     private readonly httpService: HttpService
   ) {
     this.logger.log('Initializing geo ip service')
 
-    this.geoIpServiceUrl =
-      config.get<string>('GEO_IP_SERVICE_URL', { infer: true }) || undefined
-    this.geoIpServiceUrlFile =
-      config.get<string>('GEO_IP_SERVICE_URL_FILE', { infer: true }) || undefined
-    if (!this.geoIpServiceUrl === !this.geoIpServiceUrlFile) {
-      throw new Error(
-        'Exactly one of GEO_IP_SERVICE_URL or GEO_IP_SERVICE_URL_FILE must be set!'
-      )
+    this.geoIpServiceUrl = config.get<string>(
+      'GEO_IP_SERVICE_URL',
+      { infer: true }
+    )
+    if (!this.geoIpServiceUrl) {
+      throw new Error('GEO_IP_SERVICE_URL is not set!')
     }
 
     this.logger.log(
-      this.geoIpServiceUrl
-        ? `Initialized geo ip service with geo-ip-service Url [${this.geoIpServiceUrl}]`
-        : `Initialized geo ip service with geo-ip-service Url file [${this.geoIpServiceUrlFile}]`
+      `Initialized geo ip service with geo-ip-service Url [${this.geoIpServiceUrl}]`
     )
   }
 
   async resolve(relays: LocatableRelay[]): Promise<void> {
-    const baseUrl = this.currentBaseUrl()
-    if (!baseUrl) {
-      this.logger.error(
-        'geo-ip-service address is not known, keeping previous relay locations'
-      )
-      return
-    }
-
     const addressed = relays.flatMap(relay => {
       const address = relay.or_addresses?.[0]?.split(':')[0]
       return address ? [{ fingerprint: relay.fingerprint, address }] : []
@@ -90,7 +75,7 @@ export class GeoIpService {
       for (let i = 0; i < addresses.length; i += LOOKUP_BATCH_SIZE) {
         const response = await firstValueFrom(
           this.httpService.post<LookupResponse>(
-            `${baseUrl}/lookup`,
+            `${this.geoIpServiceUrl}/lookup`,
             { addresses: addresses.slice(i, i + LOOKUP_BATCH_SIZE) },
             { timeout: LOOKUP_TIMEOUT_MS }
           )
@@ -149,16 +134,5 @@ export class GeoIpService {
     const hexId = latLngToCell(latitude, longitude, H3_RESOLUTION)
     const [cellLatitude, cellLongitude] = cellToLatLng(hexId)
     return { hexId, coordinates: [cellLatitude, cellLongitude] }
-  }
-
-  private currentBaseUrl(): string | undefined {
-    if (this.geoIpServiceUrl) return this.geoIpServiceUrl
-
-    try {
-      return readFileSync(this.geoIpServiceUrlFile!, 'utf8').trim() || undefined
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
-      throw error
-    }
   }
 }

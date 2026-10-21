@@ -53,7 +53,6 @@ job "relay-rewards-controller-live" {
         NETWORK_SCORE_CAP="75000"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
-        GEO_IP_SERVICE_URL_FILE="/local/geo-ip-service-url"
         # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists
         # `/~meta@1.0` and `^/{contract-pid}`, covering both the `~process@1.0/now/...`
         # reads and the `~process@1.0/push` writes.
@@ -99,6 +98,9 @@ job "relay-rewards-controller-live" {
         {{- range service "onionoo-war-live|any" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
+        {{- range service "geo-ip-service-live|any" }}
+        GEO_IP_SERVICE_URL="http://{{ .Address }}:{{ .Port }}"
+        {{- end }}
         {{- range service "relay-rewards-controller-live-redis-master" }}
         REDIS_MASTER_NAME="{{ .Name }}"
         {{- end }}
@@ -121,18 +123,6 @@ job "relay-rewards-controller-live" {
           min = "30s"
           max = "90s"
         }
-      }
-
-      template {
-        data        = <<-EOH
-        {{- $url := "" -}}
-        {{- range service "geo-ip-service-live|any" -}}
-          {{- if or (eq $url "") (eq .Status "passing") }}{{ $url = printf "http://%s:%d" .Address .Port }}{{ end -}}
-        {{- end -}}
-        {{ $url }}
-        EOH
-        destination = "local/geo-ip-service-url"
-        change_mode = "noop"
       }
       
       resources {

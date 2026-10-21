@@ -158,8 +158,7 @@ In production these are injected by Nomad + Vault + Consul KV (see
 | ----------------------------- | ----------------------------------------------------------- |
 | `ONIONOO_DETAILS_URI`         | Network details endpoint (relays + consensus weight)        |
 | `DETAILS_URI_AUTH`            | Optional `Authorization` header value for the details call  |
-| `GEO_IP_SERVICE_URL`          | Base URL of `geo-ip-service`; set this or the file variable |
-| `GEO_IP_SERVICE_URL_FILE`     | File holding the `geo-ip-service` base URL, read each round |
+| `GEO_IP_SERVICE_URL`          | Base URL of `geo-ip-service`; `/lookup` is appended         |
 
 ### On-chain / AO
 
