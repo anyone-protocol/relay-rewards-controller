@@ -1,73 +1,122 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { HttpService } from '@nestjs/axios'
+import { readFileSync } from 'node:fs'
 import { firstValueFrom } from 'rxjs'
+import { cellToLatLng, latLngToCell } from 'h3-js'
 
 interface FingerprintGeoLocation {
   hexId: string
   coordinates: [number, number] // [lat, lon]
 }
 
-interface FingerprintGeoLocationMap { 
-  [fingerprint:string]: FingerprintGeoLocation
+interface FingerprintGeoLocationMap {
+  [fingerprint: string]: FingerprintGeoLocation
 }
 
-const DEFAULT_CACHE_TTL = 60 * 60 * 1000 // 1 hour in milliseconds
+export interface LocatableRelay {
+  fingerprint: string
+  or_addresses?: string[]
+}
+
+interface LookupItem {
+  address: string
+  status: 'found' | 'not-found' | 'invalid'
+  location?: { coordinates?: { latitude: number, longitude: number } }
+}
+
+interface LookupResponse {
+  results: LookupItem[]
+}
+
+const H3_RESOLUTION = 4
+const LOOKUP_BATCH_SIZE = 10_000
+const LOOKUP_TIMEOUT_MS = 30_000
 
 @Injectable()
-export class GeoIpService implements OnApplicationBootstrap {
+export class GeoIpService {
   private readonly logger = new Logger(GeoIpService.name)
   public fingerprintMapData: FingerprintGeoLocationMap = {}
-  public lastResponseTimestamp: number | undefined
-  private readonly anyoneApiUrl: string
-  private readonly anyoneApiCacheTtl: number
+  private readonly geoIpServiceUrl: string | undefined
+  private readonly geoIpServiceUrlFile: string | undefined
 
   constructor(
     readonly config: ConfigService<{
-      ANYONE_API_URL: string
-      ANYONE_API_CACHE_TTL?: number
+      GEO_IP_SERVICE_URL?: string
+      GEO_IP_SERVICE_URL_FILE?: string
     }>,
     private readonly httpService: HttpService
   ) {
     this.logger.log('Initializing geo ip service')
 
-    this.anyoneApiUrl = config.get<string>(
-      'ANYONE_API_URL',
-      { infer: true }
-    )
-    if (!this.anyoneApiUrl) {
-      throw new Error('ANYONE_API_URL is not set!')
+    this.geoIpServiceUrl =
+      config.get<string>('GEO_IP_SERVICE_URL', { infer: true }) || undefined
+    this.geoIpServiceUrlFile =
+      config.get<string>('GEO_IP_SERVICE_URL_FILE', { infer: true }) || undefined
+    if (!this.geoIpServiceUrl === !this.geoIpServiceUrlFile) {
+      throw new Error(
+        'Exactly one of GEO_IP_SERVICE_URL or GEO_IP_SERVICE_URL_FILE must be set!'
+      )
     }
 
-    this.anyoneApiCacheTtl = config.get<number>(
-      'ANYONE_API_CACHE_TTL',
-      { infer: true }
-    ) || DEFAULT_CACHE_TTL
-
     this.logger.log(
-      `Initialized geo ip service with Anyone API Url [${this.anyoneApiUrl}]`
-      + ` and cache TTL [${this.anyoneApiCacheTtl}] ms`
+      this.geoIpServiceUrl
+        ? `Initialized geo ip service with geo-ip-service Url [${this.geoIpServiceUrl}]`
+        : `Initialized geo ip service with geo-ip-service Url file [${this.geoIpServiceUrlFile}]`
     )
   }
 
-  async onApplicationBootstrap() {
-    await this.fetchFingerprintMapData()
-  }
-
-  async cacheCheck() {
-    this.logger.log('Checking fingerprint map cache...')
-    const elapsedSinceLastResponse = this.lastResponseTimestamp && Date.now()
-      - new Date(this.lastResponseTimestamp).getTime()
-    if (elapsedSinceLastResponse > this.anyoneApiCacheTtl) {
-      this.logger.log(
-        `Refreshing fingerprint map data after `
-        + `[${elapsedSinceLastResponse}] ms`
+  async resolve(relays: LocatableRelay[]): Promise<void> {
+    const baseUrl = this.currentBaseUrl()
+    if (!baseUrl) {
+      this.logger.error(
+        'geo-ip-service address is not known, keeping previous relay locations'
       )
-      await this.fetchFingerprintMapData()
-    } else {
+      return
+    }
+
+    const addressed = relays.flatMap(relay => {
+      const address = relay.or_addresses?.[0]?.split(':')[0]
+      return address ? [{ fingerprint: relay.fingerprint, address }] : []
+    })
+    const addresses = [...new Set(addressed.map(({ address }) => address))]
+
+    try {
       this.logger.log(
-        `Fingerprint map data is fresh, last updated `
-        + `[${elapsedSinceLastResponse}] ms ago`
+        `Resolving [${addresses.length}] relay addresses through geo-ip-service...`
+      )
+
+      const located = new Map<string, FingerprintGeoLocation>()
+      for (let i = 0; i < addresses.length; i += LOOKUP_BATCH_SIZE) {
+        const response = await firstValueFrom(
+          this.httpService.post<LookupResponse>(
+            `${baseUrl}/lookup`,
+            { addresses: addresses.slice(i, i + LOOKUP_BATCH_SIZE) },
+            { timeout: LOOKUP_TIMEOUT_MS }
+          )
+        )
+        for (const item of response.data.results) {
+          const location = GeoIpService.toLocation(item)
+          if (location) located.set(item.address, location)
+        }
+      }
+
+      const fingerprintMapData: FingerprintGeoLocationMap = {}
+      for (const { fingerprint, address } of addressed) {
+        const location = located.get(address)
+        if (location) fingerprintMapData[fingerprint] = location
+      }
+      this.fingerprintMapData = fingerprintMapData
+
+      this.logger.log(
+        `Resolved locations of [${Object.keys(fingerprintMapData).length}]`
+        + ` of [${relays.length}] relays`
+      )
+    } catch (error) {
+      this.logger.error(
+        'Failed to resolve relay locations through geo-ip-service,'
+        + ' keeping previous relay locations',
+        error instanceof Error ? error.stack : error
       )
     }
   }
@@ -92,28 +141,24 @@ export class GeoIpService implements OnApplicationBootstrap {
     return this.fingerprintMapData[fingerprint]
   }
 
-  private async fetchFingerprintMapData() {
+  private static toLocation(item: LookupItem): FingerprintGeoLocation | undefined {
+    if (item.status !== 'found') return undefined
+    const { latitude, longitude } = item.location?.coordinates ?? {}
+    if (!latitude || !longitude) return undefined
+
+    const hexId = latLngToCell(latitude, longitude, H3_RESOLUTION)
+    const [cellLatitude, cellLongitude] = cellToLatLng(hexId)
+    return { hexId, coordinates: [cellLatitude, cellLongitude] }
+  }
+
+  private currentBaseUrl(): string | undefined {
+    if (this.geoIpServiceUrl) return this.geoIpServiceUrl
+
     try {
-      this.logger.log('Fetching latest fingerprint-map data from Anyone API...')
-      
-      const fingerprintMapUrl = `${this.anyoneApiUrl}/fingerprint-map`
-      const response = await firstValueFrom(
-        this.httpService.get<FingerprintGeoLocationMap>(fingerprintMapUrl)
-      )
-      
-      this.fingerprintMapData = response.data
-      this.lastResponseTimestamp = new Date(response.headers['date']).getTime()
-      this.logger.log(
-        `Successfully fetched relay map data`
-        + ` [${Object.keys(this.fingerprintMapData).length}]`
-        + ` cells loaded with last response timestamp`
-        + ` [${this.lastResponseTimestamp}]`
-      )
+      return readFileSync(this.geoIpServiceUrlFile!, 'utf8').trim() || undefined
     } catch (error) {
-      this.logger.error(
-        'Failed to fetch relay map data from Anyone API',
-        error instanceof Error ? error.stack : error
-      )
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+      throw error
     }
   }
 }

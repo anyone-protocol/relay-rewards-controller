@@ -46,14 +46,13 @@ job "relay-rewards-controller-stage" {
         # Our own node once /~bundler@1.0/tx is edge-allowed + the signer is faff-allow-listed:
         #   BUNDLER_NODE="https://hb.anyone.tech"
         BUNDLER_NODE="https://up.arweave.net"
-        GEODATADIR="/geo-ip-db/data"
-        GEOTMPDIR="/geo-ip-db/tmp"
         ROUND_PERIOD_SECONDS="3600"
         DO_CLEAN="true"
         NETWORK_SCORE_CAP_ENABLED="false"
         NETWORK_SCORE_CAP="50000"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
+        GEO_IP_SERVICE_URL_FILE="/local/geo-ip-service-url"
         # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists
         # `/~meta@1.0` and `^/{contract-pid}`, covering both the `~process@1.0/now/...`
         # reads and the `~process@1.0/push` writes.
@@ -99,9 +98,6 @@ job "relay-rewards-controller-stage" {
         {{- range service "onionoo-war-live|any" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
         {{- end }}
-        {{- range service "api-service-stage|any" }}
-        ANYONE_API_URL="http://{{ .Address }}:{{ .Port }}"
-        {{- end }}
         {{- range service "relay-rewards-controller-stage-redis-master" }}
         REDIS_MASTER_NAME="{{ .Name }}"
         {{- end }}
@@ -124,6 +120,18 @@ job "relay-rewards-controller-stage" {
           min = "30s"
           max = "90s"
         }
+      }
+
+      template {
+        data        = <<-EOH
+        {{- $url := "" -}}
+        {{- range service "geo-ip-service-stage|any" -}}
+          {{- if or (eq $url "") (eq .Status "passing") }}{{ $url = printf "http://%s:%d" .Address .Port }}{{ end -}}
+        {{- end -}}
+        {{ $url }}
+        EOH
+        destination = "local/geo-ip-service-url"
+        change_mode = "noop"
       }
       
       resources {
