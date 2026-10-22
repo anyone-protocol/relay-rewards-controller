@@ -1,6 +1,7 @@
 variable "commit_sha" {
   type        = string
   description = "The git commit SHA to use for the runtime image tag"
+  default     = "32fc4c1962a6d8d4d6b3551a4ea545a476fc5bd4"
 }
 
 job "relay-rewards-controller-stage" {
