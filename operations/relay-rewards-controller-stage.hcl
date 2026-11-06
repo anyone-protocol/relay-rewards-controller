@@ -68,6 +68,24 @@ job "relay-rewards-controller-stage" {
 
       template {
         data = <<-EOH
+        {{- with secret "kv/stage-protocol/relay-rewards-controller-stage" }}
+        {{- $user := .Data.data.MONGO_USER }}
+        {{- $pass := .Data.data.MONGO_PASS }}
+        {{- range service "validator-stage-mongo|any" }}
+        MONGO_URI="mongodb://{{ $user }}:{{ $pass }}@{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage2"
+        {{- end }}
+        {{- end }}
+        EOH
+        destination = "secrets/mongo.env"
+        env         = true
+        wait {
+          min = "30s"
+          max = "90s"
+        }
+      }
+
+      template {
+        data = <<-EOH
         {{with secret "kv/stage-protocol/relay-rewards-controller-stage"}}
         RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
@@ -89,9 +107,6 @@ job "relay-rewards-controller-stage" {
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/stage/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/sepolia/stage/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/stage/address" }}"
-        {{- range service "validator-stage-mongo|any" }}
-        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage2"
-        {{- end }}
         {{- range service "hyperbeam-stage-node|any" }}
         HB_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
