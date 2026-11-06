@@ -53,12 +53,26 @@ job "relay-rewards-controller-redis-sentinel-stage" {
     task "relay-rewards-controller-redis-sentinel-stage-redis-master-task" {
       driver = "docker"
 
+      vault { role = "any1-nomad-workloads-controller" }
+
+      template {
+        data = <<-EOH
+        {{- with secret "kv/stage-protocol/relay-rewards-controller-redis-sentinel-stage" }}
+        requirepass "{{ .Data.data.REDIS_PASSWORD }}"
+        masterauth "{{ .Data.data.REDIS_PASSWORD }}"
+        {{- end }}
+        EOH
+        destination = "secrets/auth.conf"
+        change_mode = "restart"
+      }
+
       config {
-        image = "redis:8.10"
+        image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
 
         args = [
           "redis-server",
+          "/usr/local/etc/redis/auth.conf",
           "--port", "${NOMAD_PORT_redis_master}",
           "--appendonly", "yes",
           "--repl-diskless-load", "on-empty-db",
@@ -67,6 +81,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
           "--protected-mode", "no",
           "--bind", "${NOMAD_IP_redis_master}"
         ]
+        volumes = [ "secrets/auth.conf:/usr/local/etc/redis/auth.conf:ro" ]
       }
 
       volume_mount {
@@ -84,12 +99,26 @@ job "relay-rewards-controller-redis-sentinel-stage" {
     task "relay-rewards-controller-redis-sentinel-stage-redis-replica-1-task" {
       driver = "docker"
 
+      vault { role = "any1-nomad-workloads-controller" }
+
+      template {
+        data = <<-EOH
+        {{- with secret "kv/stage-protocol/relay-rewards-controller-redis-sentinel-stage" }}
+        requirepass "{{ .Data.data.REDIS_PASSWORD }}"
+        masterauth "{{ .Data.data.REDIS_PASSWORD }}"
+        {{- end }}
+        EOH
+        destination = "secrets/auth.conf"
+        change_mode = "restart"
+      }
+
       config {
-        image = "redis:8.10"
+        image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
 
         args = [
           "redis-server",
+          "/usr/local/etc/redis/auth.conf",
           "--port", "${NOMAD_PORT_redis_replica_1}",
           "--appendonly", "yes",
           "--replicaof", "${NOMAD_IP_redis_master}", "${NOMAD_PORT_redis_master}",
@@ -99,6 +128,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
           "--protected-mode", "no",
           "--bind", "${NOMAD_IP_redis_replica_1}"
         ]
+        volumes = [ "secrets/auth.conf:/usr/local/etc/redis/auth.conf:ro" ]
       }
 
       volume_mount {
@@ -116,12 +146,26 @@ job "relay-rewards-controller-redis-sentinel-stage" {
     task "relay-rewards-controller-redis-sentinel-stage-redis-replica-2-task" {
       driver = "docker"
 
+      vault { role = "any1-nomad-workloads-controller" }
+
+      template {
+        data = <<-EOH
+        {{- with secret "kv/stage-protocol/relay-rewards-controller-redis-sentinel-stage" }}
+        requirepass "{{ .Data.data.REDIS_PASSWORD }}"
+        masterauth "{{ .Data.data.REDIS_PASSWORD }}"
+        {{- end }}
+        EOH
+        destination = "secrets/auth.conf"
+        change_mode = "restart"
+      }
+
       config {
-        image = "redis:8.10"
+        image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
 
         args = [
           "redis-server",
+          "/usr/local/etc/redis/auth.conf",
           "--port", "${NOMAD_PORT_redis_replica_2}",
           "--appendonly", "yes",
           "--replicaof", "${NOMAD_IP_redis_master}", "${NOMAD_PORT_redis_master}",
@@ -131,6 +175,7 @@ job "relay-rewards-controller-redis-sentinel-stage" {
           "--protected-mode", "no",
           "--bind", "${NOMAD_IP_redis_replica_2}"
         ]
+        volumes = [ "secrets/auth.conf:/usr/local/etc/redis/auth.conf:ro" ]
       }
 
       volume_mount {
@@ -148,6 +193,8 @@ job "relay-rewards-controller-redis-sentinel-stage" {
     task "relay-rewards-controller-redis-sentinel-stage-sentinel-1-task" {
       driver = "docker"
 
+      vault { role = "any1-nomad-workloads-controller" }
+
       template {
         data = <<-EOT
         bind {{ env "NOMAD_IP_sentinel_1" }}
@@ -156,20 +203,24 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         sentinel down-after-milliseconds relay-rewards-controller-stage-redis-master 10000
         sentinel failover-timeout relay-rewards-controller-stage-redis-master 10000
         sentinel parallel-syncs relay-rewards-controller-stage-redis-master 1
+        {{- with secret "kv/stage-protocol/relay-rewards-controller-redis-sentinel-stage" }}
+        requirepass "{{ .Data.data.REDIS_PASSWORD }}"
+        sentinel auth-pass relay-rewards-controller-stage-redis-master "{{ .Data.data.REDIS_PASSWORD }}"
+        {{- end }}
         EOT
-        destination = "local/sentinel.conf"
+        destination = "secrets/sentinel/sentinel.conf"
         change_mode = "restart"
       }
 
       config {
-        image = "redis:8.10"
+        image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
         args = [
           "redis-sentinel",
-          "/local/sentinel.conf",
+          "/usr/local/etc/redis-sentinel/sentinel.conf",
           "--port", "${NOMAD_PORT_sentinel_1}"
         ]
-        volumes = [ "local/sentinel.conf:/local/sentinel.conf" ]
+        volumes = [ "secrets/sentinel:/usr/local/etc/redis-sentinel" ]
       }
 
       resources {
@@ -181,6 +232,8 @@ job "relay-rewards-controller-redis-sentinel-stage" {
     task "relay-rewards-controller-redis-sentinel-stage-sentinel-2-task" {
       driver = "docker"
 
+      vault { role = "any1-nomad-workloads-controller" }
+
       template {
         data = <<-EOT
         bind {{ env "NOMAD_IP_sentinel_2" }}
@@ -189,20 +242,24 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         sentinel down-after-milliseconds relay-rewards-controller-stage-redis-master 10000
         sentinel failover-timeout relay-rewards-controller-stage-redis-master 10000
         sentinel parallel-syncs relay-rewards-controller-stage-redis-master 1
+        {{- with secret "kv/stage-protocol/relay-rewards-controller-redis-sentinel-stage" }}
+        requirepass "{{ .Data.data.REDIS_PASSWORD }}"
+        sentinel auth-pass relay-rewards-controller-stage-redis-master "{{ .Data.data.REDIS_PASSWORD }}"
+        {{- end }}
         EOT
-        destination = "local/sentinel.conf"
+        destination = "secrets/sentinel/sentinel.conf"
         change_mode = "restart"
       }
 
       config {
-        image = "redis:8.10"
+        image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
         args = [
           "redis-sentinel",
-          "/local/sentinel.conf",
+          "/usr/local/etc/redis-sentinel/sentinel.conf",
           "--port", "${NOMAD_PORT_sentinel_2}"
         ]
-        volumes = [ "local/sentinel.conf:/local/sentinel.conf" ]
+        volumes = [ "secrets/sentinel:/usr/local/etc/redis-sentinel" ]
       }
 
       resources {
@@ -214,6 +271,8 @@ job "relay-rewards-controller-redis-sentinel-stage" {
     task "relay-rewards-controller-redis-sentinel-stage-sentinel-3-task" {
       driver = "docker"
 
+      vault { role = "any1-nomad-workloads-controller" }
+
       template {
         data = <<-EOT
         bind {{ env "NOMAD_IP_sentinel_3" }}
@@ -222,20 +281,24 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         sentinel down-after-milliseconds relay-rewards-controller-stage-redis-master 10000
         sentinel failover-timeout relay-rewards-controller-stage-redis-master 10000
         sentinel parallel-syncs relay-rewards-controller-stage-redis-master 1
+        {{- with secret "kv/stage-protocol/relay-rewards-controller-redis-sentinel-stage" }}
+        requirepass "{{ .Data.data.REDIS_PASSWORD }}"
+        sentinel auth-pass relay-rewards-controller-stage-redis-master "{{ .Data.data.REDIS_PASSWORD }}"
+        {{- end }}
         EOT
-        destination = "local/sentinel.conf"
+        destination = "secrets/sentinel/sentinel.conf"
         change_mode = "restart"
       }
 
       config {
-        image = "redis:8.10"
+        image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
         args = [
           "redis-sentinel",
-          "/local/sentinel.conf",
+          "/usr/local/etc/redis-sentinel/sentinel.conf",
           "--port", "${NOMAD_PORT_sentinel_3}"
         ]
-        volumes = [ "local/sentinel.conf:/local/sentinel.conf" ]
+        volumes = [ "secrets/sentinel:/usr/local/etc/redis-sentinel" ]
       }
 
       resources {

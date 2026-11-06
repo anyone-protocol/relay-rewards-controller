@@ -76,6 +76,7 @@ job "relay-rewards-controller-stage" {
         JSON_RPC="{{.Data.data.JSON_RPC}}"
         
         CONSUL_TOKEN_CONTROLLER_CLUSTER="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
+        REDIS_PASSWORD="{{ .Data.data.REDIS_PASSWORD }}"
         {{end}}
         EOH
         destination = "secrets/keys.env"
