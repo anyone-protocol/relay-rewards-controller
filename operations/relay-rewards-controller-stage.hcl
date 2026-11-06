@@ -53,10 +53,6 @@ job "relay-rewards-controller-stage" {
         NETWORK_SCORE_CAP="50000"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
-        # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists
-        # `/~meta@1.0` and `^/{contract-pid}`, covering both the `~process@1.0/now/...`
-        # reads and the `~process@1.0/push` writes.
-        HB_URL="https://hb-stage.anyone.tech"
         IS_LOCAL_LEADER="true"
         CPU_COUNT="1"
         CONSUL_HOST="${NOMAD_IP_http}"
@@ -94,6 +90,9 @@ job "relay-rewards-controller-stage" {
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/sepolia/stage/address" }}"
         {{- range service "validator-stage-mongo|any" }}
         MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-stage2"
+        {{- end }}
+        {{- range service "hyperbeam-stage-node|any" }}
+        HB_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
         {{- range service "onionoo-war-live|any" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
