@@ -6,8 +6,7 @@ import { RelayRewardsService } from 'src/relay-rewards/relay-rewards.service'
 import { AddScoresData } from './dto/add-scores'
 import RoundSnapshot from './dto/round-snapshot'
 import { HttpService } from '@nestjs/axios'
-import { AxiosError } from 'axios'
-import { firstValueFrom, catchError } from 'rxjs'
+import { firstValueFrom } from 'rxjs'
 import { latLngToCell } from 'h3-js'
 import { RelayInfo } from './interfaces/8_3/relay-info'
 import { DetailsResponse } from './interfaces/8_3/details-response'
@@ -150,48 +149,45 @@ export class DistributionService {
   }
 
   private async fetchRelays(): Promise<RelayInfo[]> {
-    var relays: RelayInfo[] = []
     const detailsUri = this.config.get<string>('ONIONOO_DETAILS_URI', {
       infer: true,
     })
-    if (detailsUri !== undefined) {
-      const detailsAuth: string =
-        this.config.get<string>('DETAILS_URI_AUTH', {
-          infer: true,
-        }) || ''
-      const requestStamp = Date.now()
-      try {
-        const { headers, status, data } = await firstValueFrom(
-          this.httpService
-            .get<DetailsResponse>(detailsUri, {
-              headers: {
-                'content-encoding': 'gzip',
-                authorization: `${detailsAuth}`,
-              },
-              validateStatus: status => status === 304 || status === 200,
-            })
-            .pipe(
-              catchError((error: AxiosError) => {
-                this.logger.error(
-                  `Fetching relays from ${detailsUri} failed with ${error.response?.status ?? '?'}, ${error}`
-                )
-                throw 'Failed to fetch relay details'
-              })
-            )
-        )
+    if (detailsUri === undefined) {
+      throw this.onionooFetchFailed('ONIONOO_DETAILS_URI is not set')
+    }
+    const detailsAuth: string =
+      this.config.get<string>('DETAILS_URI_AUTH', {
+        infer: true,
+      }) || ''
 
-        this.logger.debug(`Fetch details from ${detailsUri} response ${status}`)
-        if (status === 200) {
-          relays = data.relays
+    let relays: RelayInfo[] | undefined
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<DetailsResponse>(detailsUri, {
+          headers: {
+            'content-encoding': 'gzip',
+            authorization: `${detailsAuth}`,
+          },
+          validateStatus: status => status === 200,
+        })
+      )
+      relays = data?.relays
+    } catch (error) {
+      throw this.onionooFetchFailed(
+        `${detailsUri} failed with ${error.response?.status ?? '?'}, ${error.message ?? error}`
+      )
+    }
+    if (!Array.isArray(relays) || relays.length === 0) {
+      throw this.onionooFetchFailed(`${detailsUri} returned no relays`)
+    }
 
-          this.logger.log(`Received ${relays.length} relays from network details`)
-        } else this.logger.debug('No relay updates from network details')
-      } catch (e) {
-        this.logger.error('Exception when fetching details of network relays', e.stack)
-      }
-    } else this.logger.warn('Set the ONIONOO_DETAILS_URI in ENV vars or configuration')
-
+    this.logger.log(`Received ${relays.length} relays from network details`)
     return relays
+  }
+
+  private onionooFetchFailed(reason: string): Error {
+    this.logger.error(`[alarm=onionoo-fetch-failed] Skipping the round: ${reason}`)
+    return new Error(`Onionoo fetch failed: ${reason}`)
   }
 
   private fingerprintToGeoHex(fingerprint: string): string {
