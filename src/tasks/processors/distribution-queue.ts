@@ -54,29 +54,33 @@ export class DistributionQueue extends WorkerHost {
   }
 
   async startDistributionHandler(job: Job<number, boolean, string>): Promise<boolean> {
-    return this.distribution.getCurrentScores(job.data).then(
-      scores => {
-        const filtered = scores.filter(score => score.Network > 0)
-        const scoreGroups = this.distribution.groupScoreJobs(filtered)
-
-        this.tasks.distributionFlow.add(
-          TasksService.DISTRIBUTION_FLOW({
-            stamp: job.data,
-            total: scores.length,
-            scoreGroups: scoreGroups,
-          })
+    try {
+      const scores = await this.distribution.getCurrentScores(job.data)
+      const filtered = scores.filter(score => score.Network > 0)
+      if (filtered.length === 0) {
+        this.logger.error(
+          `[alarm=zero-score-round] Skipping round ${job.data}: no relay with a network score among ${scores.length} scores`
         )
-
-        this.logger.log(
-          `Starting distribution ${job.data} with ${filtered.length} non-zero scores grouped to ${scoreGroups.length} jobs`
-        )
-        return true
-      },
-      error => {
-        this.logger.error(`Exception while starting distribution: ${error.message}`, error.stack)
-        return false
+        throw new Error(`Zero-score round ${job.data}`)
       }
-    )
+      const scoreGroups = this.distribution.groupScoreJobs(filtered)
+
+      await this.tasks.distributionFlow.add(
+        TasksService.DISTRIBUTION_FLOW({
+          stamp: job.data,
+          total: filtered.length,
+          scoreGroups: scoreGroups,
+        })
+      )
+
+      this.logger.log(
+        `Starting distribution ${job.data} with ${filtered.length} non-zero scores grouped to ${scoreGroups.length} jobs`
+      )
+      return true
+    } catch (error) {
+      this.logger.error(`Exception while starting distribution: ${error.message}`, error.stack)
+      throw error
+    }
   }
 
   async addScoresHandler(
@@ -124,8 +128,14 @@ export class DistributionQueue extends WorkerHost {
           { processed: [] as string[], failed: [] as string[] }
         )
 
-        if (processed.length < job.data.total) {
-          this.logger.warn(`Processed less scores (${processed.length}) then the total found (${job.data.total})`)
+        if (processed.length == 0 && job.data.total > 0) {
+          this.logger.error(
+            `[alarm=scores-not-accepted] Processed less scores (${processed.length}) then the total found (${job.data.total})`
+          )
+        } else if (processed.length < job.data.total) {
+          this.logger.error(
+            `[alarm=scores-partially-accepted] Processed less scores (${processed.length}) then the total found (${job.data.total})`
+          )
         } else if (processed.length == 0) {
           this.logger.warn(`No scores found to process`)
         } else {
