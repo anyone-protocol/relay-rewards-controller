@@ -208,19 +208,17 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         sentinel auth-pass relay-rewards-controller-stage-redis-master "{{ .Data.data.REDIS_PASSWORD }}"
         {{- end }}
         EOT
-        destination = "secrets/sentinel/sentinel.conf"
+        destination = "secrets/sentinel.conf"
         change_mode = "restart"
       }
 
       config {
         image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
+        entrypoint = ["/bin/sh", "-c"]
         args = [
-          "redis-sentinel",
-          "/usr/local/etc/redis-sentinel/sentinel.conf",
-          "--port", "${NOMAD_PORT_sentinel_1}"
+          "cp /secrets/sentinel.conf /data/sentinel.conf && exec /usr/local/bin/docker-entrypoint.sh redis-sentinel /data/sentinel.conf --port ${NOMAD_PORT_sentinel_1}"
         ]
-        volumes = [ "secrets/sentinel:/usr/local/etc/redis-sentinel" ]
       }
 
       resources {
@@ -247,19 +245,17 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         sentinel auth-pass relay-rewards-controller-stage-redis-master "{{ .Data.data.REDIS_PASSWORD }}"
         {{- end }}
         EOT
-        destination = "secrets/sentinel/sentinel.conf"
+        destination = "secrets/sentinel.conf"
         change_mode = "restart"
       }
 
       config {
         image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
+        entrypoint = ["/bin/sh", "-c"]
         args = [
-          "redis-sentinel",
-          "/usr/local/etc/redis-sentinel/sentinel.conf",
-          "--port", "${NOMAD_PORT_sentinel_2}"
+          "cp /secrets/sentinel.conf /data/sentinel.conf && exec /usr/local/bin/docker-entrypoint.sh redis-sentinel /data/sentinel.conf --port ${NOMAD_PORT_sentinel_2}"
         ]
-        volumes = [ "secrets/sentinel:/usr/local/etc/redis-sentinel" ]
       }
 
       resources {
@@ -286,19 +282,17 @@ job "relay-rewards-controller-redis-sentinel-stage" {
         sentinel auth-pass relay-rewards-controller-stage-redis-master "{{ .Data.data.REDIS_PASSWORD }}"
         {{- end }}
         EOT
-        destination = "secrets/sentinel/sentinel.conf"
+        destination = "secrets/sentinel.conf"
         change_mode = "restart"
       }
 
       config {
         image = "redis:8.10.3@sha256:f245f4c83b84a9e9a0588da1c9456e579455310f0945d5db52cd2ba27f2000cc"
         network_mode = "host"
+        entrypoint = ["/bin/sh", "-c"]
         args = [
-          "redis-sentinel",
-          "/usr/local/etc/redis-sentinel/sentinel.conf",
-          "--port", "${NOMAD_PORT_sentinel_3}"
+          "cp /secrets/sentinel.conf /data/sentinel.conf && exec /usr/local/bin/docker-entrypoint.sh redis-sentinel /data/sentinel.conf --port ${NOMAD_PORT_sentinel_3}"
         ]
-        volumes = [ "secrets/sentinel:/usr/local/etc/redis-sentinel" ]
       }
 
       resources {
