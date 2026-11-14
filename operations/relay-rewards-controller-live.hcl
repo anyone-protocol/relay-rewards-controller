@@ -1,7 +1,7 @@
 variable "commit_sha" {
   type        = string
   description = "The git commit SHA to use for the runtime image tag"
-  default     = "47dbf00e6ed5c341c7cff99437561af686c6a062"
+  default     = "00b6b32b8ddcf90f6d9a1430bd82aef178d8a9d5"
 }
 
 job "relay-rewards-controller-live" {
@@ -53,10 +53,6 @@ job "relay-rewards-controller-live" {
         NETWORK_SCORE_CAP="75000"
         PORT="${NOMAD_PORT_http}"
         NO_COLOR="1"
-        # Our own HyperBEAM node — replaces CU_URL (D17). The edge whitelists
-        # `/~meta@1.0` and `^/{contract-pid}`, covering both the `~process@1.0/now/...`
-        # reads and the `~process@1.0/push` writes.
-        HB_URL="https://hb.anyone.tech"
         IS_LOCAL_LEADER="true"
         CPU_COUNT="1"
         CONSUL_HOST="${NOMAD_IP_http}"
@@ -72,6 +68,24 @@ job "relay-rewards-controller-live" {
 
       template {
         data = <<-EOH
+        {{- with secret "kv/live-protocol/relay-rewards-controller-live" }}
+        {{- $user := .Data.data.MONGO_USER }}
+        {{- $pass := .Data.data.MONGO_PASS }}
+        {{- range service "validator-live-mongo|any" }}
+        MONGO_URI="mongodb://{{ $user }}:{{ $pass }}@{{ .Address }}:{{ .Port }}/relay-rewards-controller-ethereum"
+        {{- end }}
+        {{- end }}
+        EOH
+        destination = "secrets/mongo.env"
+        env         = true
+        wait {
+          min = "30s"
+          max = "90s"
+        }
+      }
+
+      template {
+        data = <<-EOH
         {{with secret "kv/live-protocol/relay-rewards-controller-live"}}
         RELAY_REWARDS_CONTROLLER_KEY="{{.Data.data.RELAY_REWARDS_CONTROLLER_KEY}}"
 
@@ -80,6 +94,7 @@ job "relay-rewards-controller-live" {
         JSON_RPC="{{.Data.data.JSON_RPC}}"
         
         CONSUL_TOKEN_CONTROLLER_CLUSTER="{{.Data.data.CONSUL_TOKEN_RELAY_REWARDS}}"
+        REDIS_PASSWORD="{{ .Data.data.REDIS_PASSWORD }}"
         {{end}}
         EOH
         destination = "secrets/keys.env"
@@ -92,8 +107,8 @@ job "relay-rewards-controller-live" {
         RELAY_REWARDS_PROCESS_ID="{{ key "smart-contracts/live/relay-rewards-address" }}"
         TOKEN_CONTRACT_ADDRESS="{{ key "ator-token/ethereum/live/address" }}"
         HODLER_CONTRACT_ADDRESS="{{ key "hodler/ethereum/live/address" }}"
-        {{- range service "validator-live-mongo|any" }}
-        MONGO_URI="mongodb://{{ .Address }}:{{ .Port }}/relay-rewards-controller-ethereum"
+        {{- range service "hyperbeam-live-node|any" }}
+        HB_URL="http://{{ .Address }}:{{ .Port }}"
         {{- end }}
         {{- range service "onionoo-war-live|any" }}
         ONIONOO_DETAILS_URI="http://{{ .Address }}:{{ .Port }}/details"
